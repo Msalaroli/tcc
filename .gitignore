@@ -4,3 +4,4 @@ node_modules/
 cert.key
 cert.csr
 cert.crt
+cert.pfx

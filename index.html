@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Remote Display XR - A-Frame</title>
+    <title>Remote Display XR – A-Frame</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <style>
       html, body, a-scene {
@@ -11,58 +11,48 @@
         margin: 0;
         padding: 0;
       }
-      </style>
+    </style>
   </head>
   <body>
     <a-scene
-      id="scene"
-      vr-mode-ui="enabled: false"
       embedded
-      webxr="optionalFeatures: hit-test; requiredFeatures: dom-overlay"
-      renderer="colorManagement: true;"
+      vr-mode-ui="enabled: true"
+      webxr="optionalFeatures: hit-test"
+      renderer="colorManagement: true"
       style="background: black;"
     >
-      <a-entity camera position="0 1.015 -0.3"></a-entity>
-      <a-box position="0 2 0" width="6" height="4" depth="12.5" color="#888" material="side: back"></a-box>
-      <a-cylinder
-        id="telaStream"
-        position="0 1.015 0"
-        radius="1.2"
-        open-ended="true"
-        segmentsRadial="16"
-        segmentsHeight="1"
-        material="shader: flat; side: back; src: #remoteVideo; repeat: -1 1"
-      ></a-cylinder>
+      <a-entity camera position="0 1.6 0"></a-entity>
+
+      <a-video
+        id="remoteScreen"
+        src="#remoteVideo"
+        width="2"
+        height="1.125"
+        position="0 1.6 -1"
+        rotation="0 180 0"
+        scale="-1 1 1"
+        material="side: double"
+      ></a-video>
     </a-scene>
 
-    <video id="remoteVideo" autoplay muted playsinline crossorigin="anonymous" style="display:none;">
-      <source src="https://upload.wikimedia.org/wikipedia/commons/5/53/Blankvideo.mp4" />
-    </video>
+    <video
+      id="remoteVideo"
+      autoplay
+      muted
+      playsinline
+      preload="auto"
+      crossorigin="anonymous"
+      style="display:none;"
+    ></video>
 
     <script src="receiver.js" type="module"></script>
 
     <script>
-      document.getElementById("remoteVideo").addEventListener("loadeddata", () => {
-        const video = document.getElementById("remoteVideo");
-        const videoWidth = video.videoWidth;
-        const videoHeight = video.videoHeight;
-
-        const aspectRatio = Number.isFinite(videoWidth / videoHeight)
-          ? videoWidth / videoHeight
-          : 16 / 9;
-        
-        const centralAngle = Math.PI / 2.4;
-        const radius = 1.2;
-
-        const height = (centralAngle * radius) / aspectRatio;
-        const thetaStart = (Math.PI - centralAngle / 2) * (180 / Math.PI);
-        const thetaLength = centralAngle * (180 / Math.PI);
-
-        const tela = document.getElementById("telaStream");
-        tela.setAttribute('material', { src: "#remoteVideo", shader: "flat", side: "back" });
-        tela.setAttribute('height', height);
-        tela.setAttribute('theta-start', thetaStart);
-        tela.setAttribute('theta-length', thetaLength);
+      // Auto‐reload ao salvar index.html
+      const socket = new WebSocket(`wss://${location.host}`);
+      socket.addEventListener("message", (e) => {
+        const d = JSON.parse(e.data);
+        if (d.type === "reload") location.reload();
       });
     </script>
   </body>

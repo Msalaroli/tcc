@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html>
-  <head><title>Stream</title></head>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Stream</title>
+  </head>
   <body>
     <button id="connect">Streamar esta aba</button>
 
@@ -9,12 +12,12 @@
       ws.onopen = () => ws.send(JSON.stringify({ role: "sender" }));
 
       let stream;
-      const peers = {}; // guarda um RTCPeerConnection para cada receptor
+      const peers = {};
 
       async function startStream() {
         if (!stream) {
           stream = await navigator.mediaDevices.getDisplayMedia({
-            video: { frameRate: 30, displaySurface: "monitor" },
+            video: { frameRate: 30, width: 1920, height: 1080, displaySurface: "monitor" }
           });
         }
       }
@@ -23,11 +26,28 @@
         const { type, data, id } = JSON.parse(msg.data);
 
         if (type === "connect") {
-          // novo receptor conectou → criar conexão
-          const pc = new RTCPeerConnection();
+          const pc = new RTCPeerConnection({
+            iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+          });
+
+         
+          await pc.addTransceiver("video", {
+            direction: "sendonly",
+            sendEncodings: [{ rid: "f" }],
+            codecs: [{ mimeType: "video/H264" }]
+          });
+
           peers[id] = pc;
 
-          stream.getTracks().forEach(track => pc.addTrack(track, stream));
+          stream.getTracks().forEach(track => {
+            const sender = pc.addTrack(track, stream);
+            const params = sender.getParameters();
+            params.encodings = [{
+              maxBitrate: 500_000,
+              scaleResolutionDownBy: 1.5
+            }];
+            sender.setParameters(params);
+          });
 
           pc.onicecandidate = (e) => {
             if (e.candidate) {
@@ -37,7 +57,6 @@
 
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
-
           ws.send(JSON.stringify({ type: "offer", data: offer, id }));
 
         } else if (type === "answer") {
