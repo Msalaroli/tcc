@@ -41,12 +41,6 @@
 
           stream.getTracks().forEach(track => {
             const sender = pc.addTrack(track, stream);
-            const params = sender.getParameters();
-            params.encodings = [{
-              maxBitrate: 500_000,
-              scaleResolutionDownBy: 1.5
-            }];
-            sender.setParameters(params);
           });
 
           pc.onicecandidate = (e) => {
