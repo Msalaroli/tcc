@@ -17,7 +17,7 @@
       async function startStream() {
         if (!stream) {
           stream = await navigator.mediaDevices.getDisplayMedia({
-            video: { frameRate: 30, width: 1920, height: 1080, displaySurface: "monitor" }
+            video: { frameRate: 60, width: 1920, height: 1080, displaySurface: "monitor" }
           });
         }
       }
