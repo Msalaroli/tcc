@@ -22,6 +22,12 @@ ws.onopen = () => {
 ws.onmessage = async (msg) => {
   const { type, data } = JSON.parse(msg.data);
 
+  if (type === "reload") {
+    console.log("[hot reload] Página recarregando...");
+    location.reload();
+    return;
+  }
+
   if (type === "offer") {
     await pc.setRemoteDescription(new RTCSessionDescription(data));
     const answer = await pc.createAnswer();
