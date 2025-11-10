@@ -57,6 +57,6 @@ fs.watch("index.html", (eventType) => {
   }
 });
 
-server.listen(3000, () => {
-  console.log("✅ HTTPS server running at https://localhost:3000");
+server.listen(3000, "0.0.0.0", () => {
+  console.log("✅ HTTPS server running at https://0.0.0.0:3000");
 });
