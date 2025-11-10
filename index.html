@@ -2,68 +2,35 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Stream + Passthrough (fix)</title>
+    <title>Stream + Dev Overlay Component</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <style>
-      html, body, a-scene { width:100%; height:100%; margin:0; padding:0; }
-      video { display: none; }
+      html, body, a-scene { width:100%; height:100%; margin:0; padding:0; background:#000; }
+      video { display:none; }
     </style>
   </head>
   <body>
-    <a-scene embedded renderer="colorManagement: true;" vr-mode-ui="enabled: true" webxr="optionalFeatures: hit-test">
+    <a-scene
+      embedded
+      renderer="alpha:true; colorManagement:true"
+      xr-mode="ar"
+      vr-mode-ui="enabled:true"
+      webxr="optionalFeatures: hit-test, dom-overlay"
+      dev-overlay
+    >
       <a-assets>
-        <!-- TODO: esses vídeos não têm src= na tag, o stream será atribuído por JS -->
+        <!-- Já existem antes do receiver.js rodar -->
         <video id="remoteVideo" autoplay muted playsinline crossorigin="anonymous"></video>
         <video id="passVideo"  autoplay muted playsinline crossorigin="anonymous"></video>
       </a-assets>
 
-      <!-- câmera do usuário -->
       <a-entity camera position="0 1.6 0"></a-entity>
-
-      <!-- Plano da tela remota -->
-      <a-video
-        id="remotePlane"
-        src="#remoteVideo"
-        width="2" height="1.125"
-        position="0 1.6 -1"
-        material="shader: flat; side: double"
-      ></a-video>
-
-      <!-- Plano do chão (teclado/pass-through) -->
-      <a-video
-        id="passPlane"
-        src="#passVideo"
-        width="1.5" height="1"
-        position="0 0.3 -0.5"
-        rotation="-90 0 0"
-        material="shader: flat; side: double"
-      ></a-video>
     </a-scene>
 
-    <!-- receiver.js atribui o stream remoto a #remoteVideo.srcObject -->
+    <!-- Carregue o componente (ok carregar antes ou depois; tanto faz) -->
+    <script src="dev-overlay.js"></script>
+
+    <!-- Carregue o receiver.js por último, quando #remoteVideo já existe -->
     <script src="receiver.js" type="module"></script>
-    <script>
-      const passVideo   = document.getElementById("passVideo");
-      const remoteVideo = document.getElementById("remoteVideo");
-
-      // 1) Setup do passthrough
-      async function setupPassthrough() {
-        try {
-          const s = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { exact: "environment" } }
-          });
-          passVideo.srcObject = s;
-        } catch {
-          const s = await navigator.mediaDevices.getUserMedia({ video: true });
-          passVideo.srcObject = s;
-        }
-        // Só chamo play depois de ter metadados (dimensões) prontos:
-        passVideo.addEventListener("loadedmetadata", () => passVideo.play());
-      }
-      setupPassthrough();
-
-      // 2) Aguardo o receiver.js atribuir o displayMedia
-      remoteVideo.addEventListener("loadedmetadata", () => remoteVideo.play());
-    </script>
   </body>
 </html>
