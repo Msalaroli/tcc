@@ -7,7 +7,7 @@
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
     html,body,a-scene{width:100%;height:100%;margin:0;background:#000}
-    #hud{position:fixed;top:10px;left:10px;color:#fff;font:14px/1.4 system-ui}
+    #hud{position:fixed;top:10px;left:10px;color:#fff;font:14px/1.4 system-ui;z-index:10}
     #hud code{background:#111;padding:2px 6px;border-radius:6px}
     video{display:none}
   </style>
@@ -34,28 +34,35 @@
     <a-entity camera position="0 1.6 0"></a-entity>
   </a-scene>
 
-  <!-- seu componente (sem alterações) -->
+  <!-- seu componente -->
   <script src="dev-overlay.js"></script>
 
   <script>
-    // Receiver via PeerJS Cloud
-    const peer = new Peer(undefined, { debug: 2 }); // usa PeerServer Cloud padrão (0.peerjs.com)
+    const peer = new Peer(undefined, { debug: 2 }); // PeerJS Cloud
     const ridEl = document.getElementById('rid');
     const remoteVideo = document.getElementById('remoteVideo');
 
-    // ID aleatório gerado pelo servidor da PeerJS Cloud
-    peer.on('open', id => { ridEl.textContent = id; });
-
-    // Recebe chamada e responde sem mídia local (só recebe vídeo)
-    peer.on('call', call => {
-      call.answer(null);
-      call.on('stream', stream => {
-        remoteVideo.srcObject = stream;
-        remoteVideo.onloadedmetadata = () => remoteVideo.play();
-      });
+    peer.on('open', id => {
+      console.log('[receiver] peer open', id);
+      ridEl.textContent = id;
     });
 
-    peer.on('error', e => console.warn('[peer:error]', e));
+    peer.on('call', call => {
+      console.log('[receiver] call received from', call.peer);
+      call.answer(null); // não enviamos mídia local
+      call.on('stream', stream => {
+        console.log('[receiver] remote stream received', stream);
+        remoteVideo.srcObject = stream;
+        remoteVideo.onloadedmetadata = () => {
+          console.log('[receiver] remoteVideo loadedmetadata, playing');
+          remoteVideo.play();
+        };
+      });
+      call.on('error', e => console.warn('[receiver] call error', e));
+      call.on('close', () => console.log('[receiver] call closed'));
+    });
+
+    peer.on('error', e => console.warn('[receiver] peer error', e));
   </script>
 </body>
 </html>

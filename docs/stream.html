@@ -28,23 +28,40 @@
 
     if (q.get('to')) toInput.value = q.get('to');
 
-    const peer = new Peer(undefined, { debug: 2 }); // usa PeerJS Cloud padrão
-    peer.on('open', id => statusEl.textContent = 'Sender pronto. Seu ID: ' + id);
-    peer.on('error', e => statusEl.textContent = 'Peer error: ' + e);
+    const peer = new Peer(undefined, { debug: 2 });
+    peer.on('open', id => {
+      console.log('[sender] peer open', id);
+      statusEl.textContent = 'Sender pronto. Seu ID: ' + id;
+    });
+    peer.on('error', e => {
+      console.warn('[sender] peer error', e);
+      statusEl.textContent = 'Peer error: ' + e;
+    });
 
     btn.addEventListener('click', async () => {
       const to = toInput.value.trim();
       if (!to) { statusEl.textContent = 'Informe o Receiver ID.'; return; }
 
       try {
-        // Selecionar tela/aba/janela
+        console.log('[sender] getDisplayMedia…');
         const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+        console.log('[sender] got stream', stream);
+
         const call = peer.call(to, stream);
+        console.log('[sender] calling', to, call);
+
         statusEl.textContent = 'Transmitindo para ' + to + '…';
 
-        call.on('close', () => statusEl.textContent = 'Chamada encerrada.');
-        call.on('error', err => statusEl.textContent = 'Erro na chamada: ' + err);
+        call.on('close', () => {
+          console.log('[sender] call closed');
+          statusEl.textContent = 'Chamada encerrada.';
+        });
+        call.on('error', err => {
+          console.warn('[sender] call error', err);
+          statusEl.textContent = 'Erro na chamada: ' + err;
+        });
       } catch (err) {
+        console.warn('[sender] getDisplayMedia error', err);
         statusEl.textContent = 'Falha ao capturar tela: ' + err;
       }
     });
