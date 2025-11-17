@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Sender · Share Screen</title>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <style>
+    body{margin:20px;font:14px/1.4 system-ui}
+    input,button{font:inherit;padding:6px 10px}
+    #status{margin-top:10px}
+    .row{margin:10px 0}
+  </style>
+</head>
+<body>
+  <h3>Share your screen</h3>
+  <div class="row">
+    <label>Receiver ID:</label>
+    <input id="to" placeholder="cole o ID do Receiver aqui" required />
+    <button id="btn">Iniciar transmissão</button>
+  </div>
+  <div id="status">Aguardando…</div>
+
+  <script>
+    const q = new URLSearchParams(location.search);
+    const toInput = document.getElementById('to');
+    const statusEl = document.getElementById('status');
+    const btn = document.getElementById('btn');
+
+    if (q.get('to')) toInput.value = q.get('to');
+
+    const peer = new Peer(undefined, { debug: 2 }); // usa PeerJS Cloud padrão
+    peer.on('open', id => statusEl.textContent = 'Sender pronto. Seu ID: ' + id);
+    peer.on('error', e => statusEl.textContent = 'Peer error: ' + e);
+
+    btn.addEventListener('click', async () => {
+      const to = toInput.value.trim();
+      if (!to) { statusEl.textContent = 'Informe o Receiver ID.'; return; }
+
+      try {
+        // Selecionar tela/aba/janela
+        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+        const call = peer.call(to, stream);
+        statusEl.textContent = 'Transmitindo para ' + to + '…';
+
+        call.on('close', () => statusEl.textContent = 'Chamada encerrada.');
+        call.on('error', err => statusEl.textContent = 'Erro na chamada: ' + err);
+      } catch (err) {
+        statusEl.textContent = 'Falha ao capturar tela: ' + err;
+      }
+    });
+  </script>
+</body>
+</html>

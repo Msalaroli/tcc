@@ -49,7 +49,6 @@
       remotePlane.setAttribute('material', 'shader: flat; side: double');
       scene.appendChild(remotePlane);
       this.remotePlane = remotePlane;
-      
 
       // --- plano do chão (fallback) ---
       var passPlane = document.createElement('a-video');
