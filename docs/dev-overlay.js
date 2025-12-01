@@ -48,7 +48,7 @@
       width:     { default: 1.0 },      // largura do overlay
       height:    { default: 0.5625 },   // altura do overlay (16:9)
       z:         { default: -0.9 },     // distância à frente da câmera
-      y:         { default: 1.6 },      // altura do overlay
+      y:         { default: 1.1 },      // altura do overlay
       autoStart: { default: true }      // se deve iniciar automaticamente
     },
 
