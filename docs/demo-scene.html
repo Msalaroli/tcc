@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Demo com Botão (Dev Overlay)</title>
+
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script src="./dev-overlay.js"></script>
+</head>
+
+<body>
+  <a-scene
+  xr-mode="ar"
+  webxr="optionalFeatures: hit-test, dom-overlay"
+  cursor="rayOrigin: mouse"
+  raycaster="objects: .clickable"
+  dev-overlay="autoStart: false"
+>
+  <!-- câmera com cursor (útil em desktop) -->
+  <a-entity camera position="0 1.6 0">
+    <a-cursor></a-cursor>
+  </a-entity>
+
+  <!-- chão -->
+  <a-plane position="0 0 -2" rotation="-90 0 0" width="6" height="6" color="#EEE"></a-plane>
+
+  <!-- cubo -->
+  <a-box position="0 1 -2" rotation="0 45 0" color="#4CC3D9"></a-box>
+
+  <!-- botão 3D -->
+  <a-entity
+    geometry="primitive: plane; width: 0.5; height: 0.2"
+    material="color: #24CAFF"
+    position="0 1.4 -2.5"
+    class="clickable"
+    dev-overlay-trigger
+  >
+    <a-text value="Iniciar Dev Overlay"
+            align="center"
+            color="#000"
+            position="0 0 0.01"></a-text>
+  </a-entity>
+</a-scene>
+</body>
+</html>
