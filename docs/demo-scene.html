@@ -1,46 +1,90 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <title>Demo com Botão (Dev Overlay)</title>
+  <head>
+    <meta charset="utf-8" />
+    <title>Demo Scene – Dev Overlay</title>
 
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-  <script src="./dev-overlay.js"></script>
-</head>
+    <!-- A-Frame -->
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
 
-<body>
-  <a-scene
-  xr-mode="ar"
-  webxr="optionalFeatures: hit-test, dom-overlay"
-  cursor="rayOrigin: mouse"
-  raycaster="objects: .clickable"
-  dev-overlay="autoStart: false"
->
-  <!-- câmera com cursor (útil em desktop) -->
-  <a-entity camera position="0 1.6 0">
-    <a-cursor></a-cursor>
-  </a-entity>
+    <!-- PeerJS -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
-  <!-- chão -->
-  <a-plane position="0 0 -2" rotation="-90 0 0" width="6" height="6" color="#EEE"></a-plane>
+    <!-- Biblioteca do TCC (dev-overlay.js hospedado no GitHub Pages ou em docs/) -->
+    <!-- Se estiver testando via GitHub Pages, pode usar direto o link público: -->
+    <!-- <script src="https://msalaroli.github.io/tcc/dev-overlay.js"></script> -->
+    <!-- Se estiver testando localmente dentro de docs/, use caminho relativo: -->
+    <script src="./dev-overlay.js"></script>
+  </head>
 
-  <!-- cubo -->
-  <a-box position="0 1 -2" rotation="0 45 0" color="#4CC3D9"></a-box>
+  <body>
+    <a-scene
+      xr-mode="ar"
+      webxr="optionalFeatures: hit-test, dom-overlay"
+      dev-overlay
+      cursor="rayOrigin: mouse"
+      raycaster="objects: .dev-overlay-button"
+    >
+      <!-- Câmera principal -->
+      <a-entity camera position="0 1.6 0"></a-entity>
 
-  <!-- botão 3D -->
-  <a-entity
-    geometry="primitive: plane; width: 0.5; height: 0.2"
-    material="color: #24CAFF"
-    position="0 1.4 -2.5"
-    class="clickable"
-    dev-overlay-trigger
-  >
-    <a-text value="Iniciar Dev Overlay"
-            align="center"
-            color="#000"
-            position="0 0 0.01"></a-text>
-  </a-entity>
-</a-scene>
-</body>
+      <!-- Controle direito do Quest com laser + cursor -->
+      <a-entity
+        id="rightHand"
+        laser-controls="hand: right"
+        raycaster="objects: .dev-overlay-button"
+        cursor="rayOrigin: entity; fuse: false"
+      ></a-entity>
+
+      <!-- Chão simples para referência visual -->
+      <a-plane
+        rotation="-90 0 0"
+        width="4"
+        height="4"
+        color="#7BC8A4"
+        position="0 0 0"
+      ></a-plane>
+
+      <!-- Alguns cubos de exemplo na cena -->
+      <a-box
+        position="-0.8 0.5 -1.5"
+        depth="0.5"
+        height="0.5"
+        width="0.5"
+        color="#4CC3D9"
+      ></a-box>
+
+      <a-box
+        position="0 0.25 -1"
+        depth="0.5"
+        height="0.5"
+        width="0.5"
+        color="#FFC65D"
+      ></a-box>
+
+      <a-box
+        position="0.8 0.75 -2"
+        depth="0.5"
+        height="0.5"
+        width="0.5"
+        color="#7BC8A4"
+      ></a-box>
+
+      <!-- Botão 3D para ligar/desligar o Dev Overlay -->
+      <a-entity
+        class="dev-overlay-button"
+        geometry="primitive: plane; width: 0.4; height: 0.15"
+        material="color: #24CAFF"
+        position="0 1.3 -0.8"
+        dev-overlay-trigger
+      >
+        <a-text
+          value="Dev Overlay"
+          align="center"
+          color="#000"
+          position="0 0 0.01"
+        ></a-text>
+      </a-entity>
+    </a-scene>
+  </body>
 </html>
