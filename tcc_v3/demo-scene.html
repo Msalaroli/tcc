@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>TCC v3 · Dev Overlay Demo</title>
+
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script type="module" src="/src/dev-overlay.js"></script>
+
+    <style>
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        background: #000;
+      }
+    </style>
+  </head>
+
+  <body>
+    <a-scene
+      dev-overlay="width: 1.35; height: 0.76; position: 0 1.45 -1.25"
+      cursor="rayOrigin: mouse"
+      raycaster="objects: .clickable"
+      vr-mode-ui="enabled: true"
+      webxr="optionalFeatures: hit-test, dom-overlay"
+      renderer="colorManagement: true; alpha: true"
+    >
+      <a-assets>
+        <a-mixin
+          id="soft-box"
+          geometry="primitive: box"
+          material="roughness: 0.65; metalness: 0.05"
+        ></a-mixin>
+      </a-assets>
+
+      <a-entity
+        follow-camera
+        animation__mouseenter="property: scale; to: 1.12 1.12 1.12; startEvents: mouseenter; dur: 120"
+        animation__mouseleave="property: scale; to: 1 1 1; startEvents: mouseleave; dur: 120"
+        >
+        <!-- Collider maior invisível -->
+        <a-box
+            class="clickable"
+            dev-overlay-trigger
+            width="0.06"
+            height="0.06"
+            depth="0.08"
+            material="opacity: 0"
+        ></a-box>
+
+        <!-- Cubo real -->
+        <a-box
+            width="0.06"
+            height="0.06"
+            depth="0.045"
+            color="#24CAFF"
+            material="
+            roughness: 0.25;
+            metalness: 0.1;
+            emissive: #0A6B80;
+            emissiveIntensity: 0.25
+            "
+        ></a-box>
+
+        <!-- Outline (simples e elegante) -->
+        <a-box
+            width="0.062"
+            height="0.062"
+            depth="0.047"
+            color="#001018"
+            material="wireframe: true"
+        ></a-box>
+      </a-entity>
+
+      <a-entity
+        id="rightHand"
+        laser-controls="hand: right"
+        raycaster="objects: .clickable"
+        cursor="rayOrigin: entity; fuse: false"
+      ></a-entity>
+
+      <a-entity
+        id="leftHand"
+        laser-controls="hand: left"
+        raycaster="objects: .clickable"
+      ></a-entity>
+
+      <!-- Ambiente -->
+      <a-sky color="#0F172A"></a-sky>
+
+      <!-- Luzes -->
+      <a-entity light="type: ambient; intensity: 0.65"></a-entity>
+      <a-entity
+        light="type: directional; intensity: 0.9"
+        position="1.5 3 -1"
+      ></a-entity>
+
+      <!-- Chão que some com o overlay -->
+      <a-plane
+        class="dev-overlay-hide-when-active"
+        rotation="-90 0 0"
+        width="7"
+        height="7"
+        color="#1F2937"
+        position="0 0 -1.3"
+      ></a-plane>
+
+      <!-- Área do teclado que some -->
+      <a-plane
+        class="dev-overlay-hide-when-active"
+        rotation="-90 0 0"
+        width="2.2"
+        height="1.1"
+        color="#22C55E"
+        opacity="0.7"
+        position="0 0.015 -0.75"
+      ></a-plane>
+
+      <a-text
+        class="dev-overlay-hide-when-active"
+        value="area inferior liberada quando o overlay ativa"
+        align="center"
+        color="#FFFFFF"
+        position="0 0.04 -0.75"
+        rotation="-90 0 0"
+        width="2.4"
+      ></a-text>
+
+      <!-- Título -->
+      <a-text
+        value="TCC v3\nDev Overlay para WebXR"
+        align="center"
+        color="#FFFFFF"
+        position="0 2.35 -2.8"
+        width="3.8"
+      ></a-text>
+
+      <a-text
+        value="Streaming da tela + controle automatico da cena"
+        align="center"
+        color="#CBD5E1"
+        position="0 2.02 -2.8"
+        width="3"
+      ></a-text>
+
+      <!-- Mesa virtual -->
+      <a-box
+        class="dev-overlay-hide-when-active"
+        position="0 0.45 -1.35"
+        depth="1"
+        height="0.08"
+        width="2.2"
+        color="#374151"
+      ></a-box>
+
+      <a-box
+        class="dev-overlay-hide-when-active"
+        position="-0.95 0.22 -1.05"
+        depth="0.08"
+        height="0.44"
+        width="0.08"
+        color="#111827"
+      ></a-box>
+
+      <a-box
+        class="dev-overlay-hide-when-active"
+        position="0.95 0.22 -1.05"
+        depth="0.08"
+        height="0.44"
+        width="0.08"
+        color="#111827"
+      ></a-box>
+
+      <a-box
+        class="dev-overlay-hide-when-active"
+        position="-0.95 0.22 -1.65"
+        depth="0.08"
+        height="0.44"
+        width="0.08"
+        color="#111827"
+      ></a-box>
+
+      <a-box
+        class="dev-overlay-hide-when-active"
+        position="0.95 0.22 -1.65"
+        depth="0.08"
+        height="0.44"
+        width="0.08"
+        color="#111827"
+      ></a-box>
+
+      <!-- Objetos decorativos -->
+      <a-box
+        mixin="soft-box"
+        position="-1.15 0.65 -2.2"
+        depth="0.45"
+        height="0.9"
+        width="0.45"
+        color="#38BDF8"
+      ></a-box>
+
+      <a-sphere
+        position="-0.45 0.75 -2.35"
+        radius="0.28"
+        color="#F97316"
+      ></a-sphere>
+
+      <a-cylinder
+        position="0.5 0.55 -2.2"
+        radius="0.22"
+        height="0.8"
+        color="#A78BFA"
+      ></a-cylinder>
+
+      <a-box
+        mixin="soft-box"
+        position="1.2 0.45 -2.45"
+        depth="0.5"
+        height="0.55"
+        width="0.55"
+        color="#EF4444"
+        animation="property: rotation; to: 0 360 0; loop: true; dur: 9000"
+      ></a-box>
+
+      <!-- Painel explicativo lateral -->
+      <a-plane
+        position="-1.75 1.35 -2.55"
+        width="1.25"
+        height="0.8"
+        color="#020617"
+        opacity="0.85"
+      ></a-plane>
+
+      <a-text
+        value="Como funciona:\n1. Abra stream.html no PC\n2. Compartilhe a tela\n3. Ative o Overlay\n4. A cena adapta a area inferior"
+        color="#E5E7EB"
+        position="-1.75 1.45 -2.54"
+        align="center"
+        width="1.15"
+      ></a-text>
+
+    </a-scene>
+  </body>
+</html>

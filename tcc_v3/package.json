@@ -1,0 +1,15 @@
+{
+  "name": "tcc-v3-dev-overlay",
+  "version": "1.0.0",
+  "description": "Componente A-Frame para transmitir a tela do computador dentro de uma cena WebXR usando Vite, WebRTC e HMR.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "^1.1.0",
+    "vite": "^5.4.0"
+  }
+}
