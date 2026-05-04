@@ -103,7 +103,7 @@ Esse botão permanece sempre visível, independente da movimentação do usuári
 
 ## Ocultação automática da cena
 
-O componente permite esconder elementos da cena quando o overlay está ativo.
+O componente permite esconder elementos da cena quando o overlay está ativo. Principalmente para a visualização do seu teclado do computador/notebook, então para isso você aplica uma classe nos planos que fazem parte da parte de baixo do seu cenario (quando olha para os proprios pés), para os elementos sumirem durante o overlay e após pressionar o botão novamente eles retornarem.
 
 Para isso, adicione a classe:
 
