@@ -20,20 +20,13 @@
 
   <body>
     <a-scene
-      dev-overlay="width: 1.35; height: 0.76; position: 0 1.45 -1.25"
+      dev-overlay="width: 1.35; height: 0.76; position: 0 1.85 -1.25"
       cursor="rayOrigin: mouse"
       raycaster="objects: .clickable"
       vr-mode-ui="enabled: true"
       webxr="optionalFeatures: hit-test, dom-overlay"
       renderer="colorManagement: true; alpha: true"
     >
-      <a-assets>
-        <a-mixin
-          id="soft-box"
-          geometry="primitive: box"
-          material="roughness: 0.65; metalness: 0.05"
-        ></a-mixin>
-      </a-assets>
 
       <a-entity
         follow-camera
@@ -86,9 +79,6 @@
         laser-controls="hand: left"
         raycaster="objects: .clickable"
       ></a-entity>
-
-      <!-- Ambiente -->
-      <a-sky color="#0F172A"></a-sky>
 
       <!-- Luzes -->
       <a-entity light="type: ambient; intensity: 0.65"></a-entity>

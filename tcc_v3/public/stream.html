@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>TCC v3 · Stream</title>
+
+    <style>
+      body {
+        font-family: system-ui, Arial, sans-serif;
+        margin: 24px;
+      }
+
+      button {
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+
+      #status {
+        margin-top: 12px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>Dev Overlay Stream</h1>
+
+    <button id="start">Compartilhar tela</button>
+
+    <div id="status">Clique em Compartilhar tela para iniciar.</div>
+
+    <script>
+      const startButton = document.getElementById('start');
+      const statusEl = document.getElementById('status');
+
+      let socket = null;
+      let peerConnection = null;
+      let desktopStream = null;
+      let makingOffer = false;
+      let pendingIceCandidates = [];
+
+      function log(...args) {
+        console.log('[stream]', ...args);
+        statusEl.textContent = args.join(' ');
+      }
+
+      function createSocket() {
+        const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const url = `${protocol}//${location.host}/dev-overlay-ws`;
+
+        socket = new WebSocket(url);
+
+        socket.addEventListener('open', () => {
+          log('Canal de sinalizacao conectado.');
+
+          if (desktopStream) {
+            createOffer();
+          }
+        });
+
+        socket.addEventListener('message', async (event) => {
+          const message = JSON.parse(event.data);
+
+          if (!message || message.source === 'stream') {
+            return;
+          }
+
+          console.log('[stream] sinal recebido:', message.type, message.source);
+
+          try {
+            if (message.type === 'rtc:connect') {
+              if (desktopStream) {
+                log('Cena pediu reconexao. Recriando offer...');
+                await createOffer();
+              } else {
+                log('Cena pediu conexao. Clique em Compartilhar tela para iniciar.');
+              }
+            }
+
+            if (message.type === 'rtc:answer' && peerConnection) {
+              await peerConnection.setRemoteDescription(
+                new RTCSessionDescription(message.data)
+              );
+
+              if (pendingIceCandidates.length > 0) {
+                for (const candidate of pendingIceCandidates) {
+                  await peerConnection.addIceCandidate(candidate);
+                }
+
+                pendingIceCandidates = [];
+              }
+
+              log('Resposta recebida. Conectando...');
+            }
+
+            if (message.type === 'rtc:ice' && peerConnection) {
+              const candidate = new RTCIceCandidate(message.data);
+
+              if (peerConnection.remoteDescription) {
+                await peerConnection.addIceCandidate(candidate);
+              } else {
+                pendingIceCandidates.push(candidate);
+              }
+            }
+          } catch (error) {
+            console.error('[stream] erro WebRTC:', error);
+            log('Erro WebRTC:', error.message);
+          }
+        });
+
+        socket.addEventListener('close', () => {
+          log('Canal de sinalizacao fechado. Reconectando...');
+
+          setTimeout(() => {
+            createSocket();
+          }, 1000);
+        });
+
+        socket.addEventListener('error', (error) => {
+          console.warn('[stream] websocket error:', error);
+        });
+      }
+
+      function sendSignal(message) {
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+          console.warn('[stream] socket indisponivel:', message.type);
+          return;
+        }
+
+        socket.send(JSON.stringify(message));
+      }
+
+      function closePeerConnection() {
+        if (peerConnection) {
+          console.log('[stream] fechando conexao antiga');
+
+          peerConnection.onicecandidate = null;
+          peerConnection.onconnectionstatechange = null;
+          peerConnection.close();
+          peerConnection = null;
+        }
+
+        pendingIceCandidates = [];
+      }
+
+      function createPeerConnection() {
+        closePeerConnection();
+
+        peerConnection = new RTCPeerConnection();
+
+        desktopStream.getTracks().forEach((track) => {
+          peerConnection.addTrack(track, desktopStream);
+        });
+
+        peerConnection.onicecandidate = (event) => {
+          if (event.candidate) {
+            sendSignal({
+              type: 'rtc:ice',
+              source: 'stream',
+              data: event.candidate
+            });
+          }
+        };
+
+        peerConnection.onconnectionstatechange = () => {
+          console.log('[stream] connectionState:', peerConnection.connectionState);
+
+          if (peerConnection.connectionState === 'connected') {
+            log('Conexao WebRTC estabelecida.');
+          }
+
+          if (
+            peerConnection.connectionState === 'failed' ||
+            peerConnection.connectionState === 'disconnected'
+          ) {
+            log('Conexao perdida. Aguardando reconexao da cena.');
+          }
+        };
+
+        return peerConnection;
+      }
+
+      async function createOffer() {
+        if (!desktopStream) {
+          log('Clique em Compartilhar tela primeiro.');
+          return;
+        }
+
+        if (makingOffer) {
+          console.log('[stream] offer ja em andamento');
+          return;
+        }
+
+        makingOffer = true;
+
+        try {
+          const pc = createPeerConnection();
+
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+
+          sendSignal({
+            type: 'rtc:offer',
+            source: 'stream',
+            data: offer
+          });
+
+          log('Offer enviada. Aguardando resposta da cena.');
+        } catch (error) {
+          console.error('[stream] erro ao criar offer:', error);
+          log('Erro ao criar offer:', error.message);
+        } finally {
+          makingOffer = false;
+        }
+      }
+
+      async function startStream() {
+        try {
+          log('Solicitando captura de tela...');
+
+          if (!desktopStream) {
+            desktopStream = await navigator.mediaDevices.getDisplayMedia({
+              video: {
+                frameRate: 30
+              },
+              audio: false
+            });
+
+            desktopStream.getVideoTracks()[0]?.addEventListener('ended', () => {
+              log('Compartilhamento de tela encerrado.');
+              desktopStream = null;
+              closePeerConnection();
+            });
+          }
+
+          await createOffer();
+        } catch (error) {
+          console.error('[stream] erro:', error);
+          log('Erro:', error.message);
+        }
+      }
+
+      startButton.addEventListener('click', startStream);
+
+      createSocket();
+    </script>
+  </body>
+</html>

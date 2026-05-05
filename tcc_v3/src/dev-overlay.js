@@ -31,7 +31,8 @@ AFRAME.registerComponent('dev-overlay', {
     this.peerConnection = null;
     this.video = null;
     this.screen = null;
-    this.ws = import.meta.hot;
+    this.ws = null;
+    this.pendingIceCandidates = [];
 
     this.createRemoteVideo();
     this.createScreen();
@@ -128,40 +129,35 @@ AFRAME.registerComponent('dev-overlay', {
   },
 
   setupRtcReceiver: function () {
-    if (!this.ws) {
-        this.setHudStatus('Abra usando o Vite dev server.');
-        console.warn('[dev-overlay] import.meta.hot indisponivel.');
-        return;
+    if (this.peerConnection) {
+        console.log('[dev-overlay] fechando conexao antiga');
+        this.peerConnection.close();
+        this.peerConnection = null;
     }
 
-    this.peerConnection = new RTCPeerConnection();
+    this.pendingIceCandidates = [];
 
-    this.peerConnection.ontrack = (event) => {
-        console.log('[dev-overlay] stream recebido', event.streams[0]);
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const url = `${protocol}//${location.host}/dev-overlay-ws`;
 
-        this.video.srcObject = event.streams[0];
+    this.ws = new WebSocket(url);
 
-        this.video.play().catch((error) => {
-        console.warn('[dev-overlay] falha ao executar video', error);
-        });
+    this.ws.addEventListener('open', () => {
+        console.log('[dev-overlay] websocket conectado');
+        this.setHudStatus('Canal de sinalizacao conectado.');
 
-        this.screen.setAttribute('src', '#devOverlayRemoteVideo');
-        this.setHudStatus('Stream recebido.');
-    };
-
-    this.peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-        console.log('[dev-overlay] enviando ICE');
-
-        this.ws.send('dev-overlay:signal', {
-            type: 'rtc:ice',
+        setTimeout(() => {
+        this.sendSignal({
+            type: 'rtc:connect',
             source: 'overlay',
-            data: event.candidate
+            time: Date.now()
         });
-        }
-    };
+        }, 300);
+    });
 
-    this.ws.on('dev-overlay:signal', async (message) => {
+    this.ws.addEventListener('message', async (event) => {
+        const message = JSON.parse(event.data);
+
         if (!message || message.source === 'overlay') {
         return;
         }
@@ -170,14 +166,73 @@ AFRAME.registerComponent('dev-overlay', {
 
         try {
         if (message.type === 'rtc:offer') {
+            if (this.peerConnection) {
+            this.peerConnection.close();
+            }
+
+            this.peerConnection = new RTCPeerConnection();
+
+            this.peerConnection.ontrack = (trackEvent) => {
+            console.log('[dev-overlay] stream recebido', trackEvent.streams[0]);
+
+            this.video.srcObject = trackEvent.streams[0];
+
+            this.video.play().catch((error) => {
+                console.warn('[dev-overlay] falha ao executar video', error);
+            });
+
+            this.screen.setAttribute('src', '#devOverlayRemoteVideo');
+            this.setHudStatus('Stream recebido.');
+            };
+
+            this.peerConnection.onicecandidate = (iceEvent) => {
+            if (iceEvent.candidate) {
+                this.sendSignal({
+                type: 'rtc:ice',
+                source: 'overlay',
+                data: iceEvent.candidate
+                });
+            }
+            };
+
+            this.peerConnection.onconnectionstatechange = () => {
+            const state = this.peerConnection.connectionState;
+
+            console.log('[dev-overlay] connectionState:', state);
+
+            if (state === 'connected') {
+                this.setHudStatus('Conexao WebRTC estabelecida.');
+            }
+
+            if (state === 'failed' || state === 'disconnected') {
+                this.setHudStatus('Conexao perdida. Solicitando reconexao...');
+
+                setTimeout(() => {
+                this.sendSignal({
+                    type: 'rtc:connect',
+                    source: 'overlay',
+                    time: Date.now()
+                });
+                }, 500);
+            }
+            };
+
             await this.peerConnection.setRemoteDescription(
             new RTCSessionDescription(message.data)
             );
 
+            if (this.pendingIceCandidates.length > 0) {
+            for (const candidate of this.pendingIceCandidates) {
+                await this.peerConnection.addIceCandidate(candidate);
+            }
+
+            this.pendingIceCandidates = [];
+            }
+
             const answer = await this.peerConnection.createAnswer();
             await this.peerConnection.setLocalDescription(answer);
 
-            this.ws.send('dev-overlay:signal', {
+            this.sendSignal({
             type: 'rtc:answer',
             source: 'overlay',
             data: answer
@@ -187,9 +242,13 @@ AFRAME.registerComponent('dev-overlay', {
         }
 
         if (message.type === 'rtc:ice') {
-            await this.peerConnection.addIceCandidate(
-            new RTCIceCandidate(message.data)
-            );
+            const candidate = new RTCIceCandidate(message.data);
+
+            if (this.peerConnection && this.peerConnection.remoteDescription) {
+            await this.peerConnection.addIceCandidate(candidate);
+            } else {
+            this.pendingIceCandidates.push(candidate);
+            }
         }
         } catch (error) {
         console.error('[dev-overlay] erro WebRTC', error);
@@ -197,15 +256,33 @@ AFRAME.registerComponent('dev-overlay', {
         }
     });
 
-    this.ws.send('dev-overlay:signal', {
-        type: 'rtc:connect',
-        source: 'overlay'
+    this.ws.addEventListener('close', () => {
+        console.warn('[dev-overlay] websocket fechado');
+
+        this.setHudStatus('Canal fechado. Reconectando...');
+
+        setTimeout(() => {
+        this.setupRtcReceiver();
+        }, 1000);
+    });
+
+    this.ws.addEventListener('error', (error) => {
+        console.warn('[dev-overlay] websocket error:', error);
     });
   },
 
   toggleOverlay: function () {
     this.active = !this.active;
     this.setOverlayActive(this.active);
+  },
+
+  sendSignal: function (message) {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        console.warn('[dev-overlay] websocket indisponivel:', message.type);
+        return;
+    }
+
+    this.ws.send(JSON.stringify(message));
   },
 
   setOverlayActive: function (active) {
