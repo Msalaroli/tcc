@@ -25,7 +25,7 @@ function devOverlaySignaling() {
       });
 
       wss.on('connection', (ws) => {
-        console.log('[vite] dev-overlay client conectado');
+        console.log('[vite] dev-overlay client connected');
 
         ws.on('message', (raw) => {
           let message;
@@ -46,7 +46,7 @@ function devOverlaySignaling() {
         });
 
         ws.on('close', () => {
-          console.log('[vite] dev-overlay client desconectado');
+          console.log('[vite] dev-overlay client disconnected');
         });
       });
     }

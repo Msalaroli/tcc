@@ -24,9 +24,9 @@
   <body>
     <h1>Dev Overlay Stream</h1>
 
-    <button id="start">Compartilhar tela</button>
+    <button id="start">Share Screen</button>
 
-    <div id="status">Clique em Compartilhar tela para iniciar.</div>
+    <div id="status">Click on Share Screen to start.</div>
 
     <script>
       const startButton = document.getElementById('start');
@@ -50,7 +50,7 @@
         socket = new WebSocket(url);
 
         socket.addEventListener('open', () => {
-          log('Canal de sinalizacao conectado.');
+          log('Signaling channel connected.');
 
           if (desktopStream) {
             createOffer();
@@ -64,15 +64,15 @@
             return;
           }
 
-          console.log('[stream] sinal recebido:', message.type, message.source);
+          console.log('[stream] received signal:', message.type, message.source);
 
           try {
             if (message.type === 'rtc:connect') {
               if (desktopStream) {
-                log('Cena pediu reconexao. Recriando offer...');
+                log('Scene asked for reconnection. Recreating offer...');
                 await createOffer();
               } else {
-                log('Cena pediu conexao. Clique em Compartilhar tela para iniciar.');
+                log('Scene asked for connection. Click on Share Screen to start.');
               }
             }
 
@@ -89,7 +89,7 @@
                 pendingIceCandidates = [];
               }
 
-              log('Resposta recebida. Conectando...');
+              log('Response received. Connecting...');
             }
 
             if (message.type === 'rtc:ice' && peerConnection) {
@@ -102,13 +102,13 @@
               }
             }
           } catch (error) {
-            console.error('[stream] erro WebRTC:', error);
+            console.error('[stream] error WebRTC:', error);
             log('Erro WebRTC:', error.message);
           }
         });
 
         socket.addEventListener('close', () => {
-          log('Canal de sinalizacao fechado. Reconectando...');
+          log('Signaling channel closed. Reconnecting...');
 
           setTimeout(() => {
             createSocket();
@@ -122,7 +122,7 @@
 
       function sendSignal(message) {
         if (!socket || socket.readyState !== WebSocket.OPEN) {
-          console.warn('[stream] socket indisponivel:', message.type);
+          console.warn('[stream] socket unavailable:', message.type);
           return;
         }
 
@@ -131,7 +131,7 @@
 
       function closePeerConnection() {
         if (peerConnection) {
-          console.log('[stream] fechando conexao antiga');
+          console.log('[stream] closing old connection');
 
           peerConnection.onicecandidate = null;
           peerConnection.onconnectionstatechange = null;
@@ -165,14 +165,14 @@
           console.log('[stream] connectionState:', peerConnection.connectionState);
 
           if (peerConnection.connectionState === 'connected') {
-            log('Conexao WebRTC estabelecida.');
+            log('WebRTC connection established.');
           }
 
           if (
             peerConnection.connectionState === 'failed' ||
             peerConnection.connectionState === 'disconnected'
           ) {
-            log('Conexao perdida. Aguardando reconexao da cena.');
+            log('WebRTC connection lost. Waiting for reconnection from the scene.');
           }
         };
 
@@ -181,12 +181,12 @@
 
       async function createOffer() {
         if (!desktopStream) {
-          log('Clique em Compartilhar tela primeiro.');
+          log('Click on Share Screen first.');
           return;
         }
 
         if (makingOffer) {
-          console.log('[stream] offer ja em andamento');
+          console.log('[stream] offer already underway');
           return;
         }
 
@@ -204,10 +204,10 @@
             data: offer
           });
 
-          log('Offer enviada. Aguardando resposta da cena.');
+          log('Offer sent. Waiting for response from the scene.');
         } catch (error) {
-          console.error('[stream] erro ao criar offer:', error);
-          log('Erro ao criar offer:', error.message);
+          console.error('[stream] error creating offer:', error);
+          log('Error creating offer:', error.message);
         } finally {
           makingOffer = false;
         }
@@ -215,7 +215,7 @@
 
       async function startStream() {
         try {
-          log('Solicitando captura de tela...');
+          log('Requesting screenshot...');
 
           if (!desktopStream) {
             desktopStream = await navigator.mediaDevices.getDisplayMedia({
@@ -226,7 +226,7 @@
             });
 
             desktopStream.getVideoTracks()[0]?.addEventListener('ended', () => {
-              log('Compartilhamento de tela encerrado.');
+              log('Screen sharing ended.');
               desktopStream = null;
               closePeerConnection();
             });
@@ -234,8 +234,8 @@
 
           await createOffer();
         } catch (error) {
-          console.error('[stream] erro:', error);
-          log('Erro:', error.message);
+          console.error('[stream] error:', error);
+          log('Error:', error.message);
         }
       }
 
