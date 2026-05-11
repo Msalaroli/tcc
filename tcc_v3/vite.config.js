@@ -36,6 +36,26 @@ function devOverlaySignaling() {
             return;
           }
 
+          if (message.type === 'dev:log') {
+            const level = message.level || 'log';
+            const source = message.source || 'unknown';
+            const text = message.message || '';
+            const data = message.data ? JSON.stringify(message.data) : '';
+            const time = message.time || new Date().toISOString();
+
+            const output = `[${time}] [${source}] ${text} ${data}`;
+
+            if (level === 'error') {
+              console.error(output);
+            } else if (level === 'warn') {
+              console.warn(output);
+            } else {
+              console.log(output);
+            }
+
+            return;
+          }
+
           console.log('[vite] signal:', message.type, message.source);
 
           wss.clients.forEach((client) => {
