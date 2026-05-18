@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>TCC v3 · Dev Shell</title>
+
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script type="module" src="/src/dev-overlay.js"></script>
+    <script type="module" src="/src/project/project-loader.js"></script>
+
+    <style>
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        background: transparent;
+      }
+    </style>
+  </head>
+
+  <body>
+    <a-scene
+      dev-overlay="width: 1.35; height: 0.76; position: 0 1.45 -1.25"
+      cursor="rayOrigin: mouse"
+      raycaster="objects: .clickable"
+      vr-mode-ui="enabled: true"
+      xr-mode="ar"
+      webxr="optionalFeatures: hit-test, dom-overlay"
+      renderer="colorManagement: true; alpha: true"
+      background="transparent: true"
+    >
+      <a-entity
+        follow-camera
+        animation__mouseenter="property: scale; to: 1.12 1.12 1.12; startEvents: mouseenter; dur: 120"
+        animation__mouseleave="property: scale; to: 1 1 1; startEvents: mouseleave; dur: 120"
+      >
+        <a-box
+          class="clickable"
+          dev-overlay-trigger
+          width="0.06"
+          height="0.06"
+          depth="0.08"
+          material="opacity: 0; transparent: true"
+        ></a-box>
+
+        <a-box
+          width="0.06"
+          height="0.06"
+          depth="0.045"
+          color="#24CAFF"
+          material="
+            roughness: 0.25;
+            metalness: 0.1;
+            emissive: #0A6B80;
+            emissiveIntensity: 0.25
+          "
+        ></a-box>
+
+        <a-box
+          width="0.062"
+          height="0.062"
+          depth="0.047"
+          color="#001018"
+          material="wireframe: true"
+        ></a-box>
+      </a-entity>
+
+      <a-entity
+        id="rightHand"
+        laser-controls="hand: right"
+        raycaster="objects: .clickable"
+        cursor="rayOrigin: entity; fuse: false"
+      ></a-entity>
+
+      <a-entity
+        id="leftHand"
+        laser-controls="hand: left"
+        raycaster="objects: .clickable"
+      ></a-entity>
+
+      <a-entity light="type: ambient; intensity: 0.65"></a-entity>
+      <a-entity
+        light="type: directional; intensity: 0.9"
+        position="1.5 3 -1"
+      ></a-entity>
+
+      <a-entity id="project-root"></a-entity>
+    </a-scene>
+  </body>
+</html>
