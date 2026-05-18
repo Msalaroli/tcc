@@ -8,6 +8,77 @@ function getScene() {
   return document.querySelector('a-scene');
 }
 
+function getDevOverlayComponent() {
+  const scene = getScene();
+
+  if (!scene || !scene.components) {
+    return null;
+  }
+
+  return scene.components['dev-overlay'] || null;
+}
+
+function isOverlayActive() {
+  const devOverlay = getDevOverlayComponent();
+
+  if (typeof devOverlay?.active === 'boolean') {
+    return devOverlay.active;
+  }
+
+  if (typeof devOverlay?.isActive === 'boolean') {
+    return devOverlay.isActive;
+  }
+
+  if (localStorage.getItem('dev-overlay.active') === 'true') {
+    return true;
+  }
+
+  const scene = getScene();
+
+  if (scene?.is?.('dev-overlay-active')) {
+    return true;
+  }
+
+  return false;
+}
+
+function applyOverlayVisibilityState() {
+  const overlayIsActive = isOverlayActive();
+  const markedElements = document.querySelectorAll(
+    '.dev-overlay-hide-when-active'
+  );
+
+  markedElements.forEach((el) => {
+    el.setAttribute('visible', overlayIsActive ? 'false' : 'true');
+
+    if (el.object3D) {
+      el.object3D.visible = !overlayIsActive;
+    }
+  });
+
+  console.log(
+    overlayIsActive
+      ? '[project-loader] overlay is active, hiding marked scene elements'
+      : '[project-loader] overlay is inactive, showing marked scene elements'
+  );
+}
+
+function refreshOverlayVisibilityAfterMount() {
+  applyOverlayVisibilityState();
+
+  requestAnimationFrame(() => {
+    applyOverlayVisibilityState();
+  });
+
+  setTimeout(() => {
+    applyOverlayVisibilityState();
+  }, 100);
+
+  setTimeout(() => {
+    applyOverlayVisibilityState();
+  }, 300);
+}
+
 function unmountScene() {
   const root = getRoot();
 
@@ -29,12 +100,15 @@ function mountScene(html = sceneHtml, reason = 'initial') {
   }
 
   unmountScene();
+
   root.innerHTML = html;
+
+  refreshOverlayVisibilityAfterMount();
 
   if (reason === 'initial') {
     console.log('[project-loader] initial scene mounted');
   } else {
-    console.log('[project-loader] project scene remounted');
+    console.log('[project-loader] project scene remounted', reason);
   }
 
   if (scene) {
