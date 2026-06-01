@@ -1,50 +1,58 @@
 # TCC v3 · Dev Overlay for WebXR
 
-Dev Overlay is a reusable A-Frame component that streams your computer screen into a WebXR scene in real time.
+Dev Overlay is a WebXR development tool built with A-Frame, Vite, WebRTC and WebSocket signaling.
 
-The project was created to improve the development workflow for immersive applications. Instead of removing the headset every time the developer needs to check code, logs, documentation, or the browser, the computer screen can be displayed directly inside the XR scene.
+The project allows a developer to stream the computer screen into a WebXR AR scene while keeping the Meta Quest headset on. It also provides a stable AR shell that can reload only the editable project scene without reloading the page that owns the WebXR session.
 
-This version uses:
-
-- A-Frame for the WebXR scene
-- WebRTC for screen streaming
-- Vite Dev Server for local development
-- A custom WebSocket signaling channel inside Vite
-- A reusable `dev-overlay` A-Frame component
-- A static `stream.html` page outside Vite HMR to keep the screen capture alive during hot reloads
+This helps reduce the development loop for XR applications, especially when testing inside Meta Quest AR.
 
 ---
 
-## Objective
+## Main idea
 
-The main goal of this project is to reduce the development iteration cycle in XR applications.
+The project is divided into two layers:
 
-In a common XR workflow, developers often need to remove the headset to:
+```txt
+dev-shell.html
+→ stable AR shell
+→ owns the WebXR AR session
+→ owns the dev overlay
+→ owns the stream screen
+→ owns the project-root container
 
-- edit code
-- inspect logs
-- read documentation
-- check the browser
-- debug layout or interaction issues
+src/project/project-scene.html
+→ editable A-Frame scene
+→ loaded inside project-root
+→ can be changed during development
+```
 
-This project allows the developer to keep the headset on while viewing their computer screen inside the immersive scene.
+The developer edits:
 
-The component also allows the scene to adapt automatically when the overlay is enabled. Elements marked by the developer can be hidden when the screen overlay is active, making room for physical references such as a keyboard, desk, or lower field of view.
+```txt
+src/project/project-scene.html
+```
+
+The shell stays alive:
+
+```txt
+dev-shell.html
+```
+
+This means the editable scene can be remounted without fully reloading the page that owns the AR session.
 
 ---
 
-## Main Features
+## What the project does
 
-- Screen streaming from the computer to the WebXR scene
-- WebRTC based video transmission
-- Vite based local development server
-- Custom WebSocket signaling endpoint
-- A-Frame component integration
-- Toggle button inside the XR scene
-- Optional HUD style button that follows the user's view
-- Automatic hiding and restoring of selected scene elements
-- Reconnection after WebXR scene reloads
-- `stream.html` kept outside Vite HMR to avoid losing screen capture during hot reload
+- Streams the computer screen into a WebXR scene
+- Uses WebRTC for screen sharing
+- Uses a custom WebSocket endpoint for signaling
+- Keeps `stream.html` outside the Vite HMR pipeline
+- Provides a stable AR shell for Meta Quest
+- Loads the editable A-Frame scene from an external HTML file
+- Reloads only the project scene during development
+- Allows selected scene elements to disappear when the overlay is active
+- Keeps other elements visible to preserve instructions or debugging context
 
 ---
 
@@ -60,97 +68,179 @@ The component also allows the scene to adapt automatically when the overlay is e
 
 ---
 
-## Project Structure
+## Project structure
 
 ```txt
 tcc_v3/
 ├── package.json
 ├── vite.config.js
 ├── README.md
+├── dev-shell.html
 ├── demo-scene.html
-├── src/
-│   └── dev-overlay.js
-└── public/
-    └── stream.html
+├── public/
+│   └── stream.html
+└── src/
+    ├── dev-overlay.js
+    └── project/
+        ├── project-loader.js
+        └── project-scene.html
 ```
-
-### File responsibilities
-
-```txt
-demo-scene.html
-```
-
-Main XR demo scene. This is the page opened in the headset.
-
-```txt
-public/stream.html
-```
-
-Static page opened on the computer. It captures the desktop screen and sends it to the XR scene.
-
-This file is placed inside `public/` so it is served by Vite as a static file and does not participate in Vite HMR. This avoids losing the screen capture when the XR scene reloads.
-
-```txt
-src/dev-overlay.js
-```
-
-Reusable A-Frame component responsible for:
-
-- creating the virtual screen inside the scene
-- connecting to the signaling WebSocket
-- receiving the WebRTC stream
-- toggling the overlay
-- hiding and restoring selected scene elements
-- managing reconnection
-
-```txt
-vite.config.js
-```
-
-Vite configuration file. It enables HTTPS and creates the custom WebSocket endpoint used for WebRTC signaling.
 
 ---
 
-## Installation
+## File responsibilities
 
-Install the project dependencies:
+### `dev-shell.html`
+
+This is the main page used in the Meta Quest.
+
+It is the stable AR shell.
+
+It contains:
+
+- `<a-scene>`
+- WebXR AR configuration
+- `dev-overlay`
+- overlay toggle button
+- hand controls
+- lights
+- `<a-entity id="project-root"></a-entity>`
+- import for `project-loader.js`
+
+This file should not contain the editable project scene.
+
+The editable scene is loaded into:
+
+```html
+<a-entity id="project-root"></a-entity>
+```
+
+---
+
+### `src/project/project-scene.html`
+
+This is the editable A-Frame scene.
+
+This is where the developer creates or changes the project content.
+
+It should contain only internal A-Frame entities, such as:
+
+```html
+<a-box></a-box>
+<a-plane></a-plane>
+<a-text></a-text>
+<a-entity></a-entity>
+```
+
+It must not contain:
+
+```html
+<html>
+<head>
+<body>
+<a-scene>
+```
+
+The stable shell already owns the `<a-scene>`.
+
+---
+
+### `src/project/project-loader.js`
+
+This file loads the editable scene into the shell.
+
+It imports the scene as raw HTML:
+
+```js
+import sceneHtml from './project-scene.html?raw';
+```
+
+Then it injects that HTML into:
+
+```html
+<a-entity id="project-root"></a-entity>
+```
+
+It also supports live scene reload during development.
+
+When `project-scene.html` changes, the loader remounts the scene content without reloading the full page.
+
+---
+
+### `src/dev-overlay.js`
+
+This is the reusable A-Frame component.
+
+It is responsible for:
+
+- creating the virtual screen
+- receiving the WebRTC stream
+- rendering the computer screen inside the XR scene
+- toggling the overlay on and off
+- hiding elements marked with `dev-overlay-hide-when-active`
+- keeping debugging context visible when needed
+- logging XR/WebRTC state for development
+
+---
+
+### `public/stream.html`
+
+This page is opened on the computer.
+
+It asks the user to share the computer screen and sends the stream to the WebXR scene.
+
+It stays inside `public/` so it is served as a static page and does not get reloaded by Vite HMR.
+
+This is important because if `stream.html` reloads, the browser stops `getDisplayMedia`, and the user must click **Share screen** again.
+
+---
+
+### `vite.config.js`
+
+This file configures the Vite development server.
+
+It provides:
+
+- HTTPS support for local WebXR testing
+- host access for testing on Meta Quest
+- a custom WebSocket endpoint used by the overlay and stream page
+
+The WebSocket endpoint is used for WebRTC signaling:
+
+```txt
+/dev-overlay-ws
+```
+
+---
+
+## How to run
+
+Install dependencies:
 
 ```bash
 npm install
 ```
 
-If the project uses the custom WebSocket signaling server inside Vite, install `ws` as a development dependency:
-
-```bash
-npm install -D ws
-```
-
----
-
-## Running the project
-
 Start the Vite development server:
 
 ```bash
-npm run dev
+npm run dev -- --host
 ```
 
 Vite will show URLs similar to:
 
 ```txt
 Local:   https://localhost:5173/
-Network: https://192.168.0.10:5173/
+Network: https://192.168.1.51:5173/
 ```
 
-Use the `Network` URL when opening the scene from the headset.
+Use the `Network` URL on the Meta Quest.
 
 ---
 
-## Testing the demo
+## How to test on the computer
 
-### 1. Open the stream page on the computer
-
-On the computer, open:
+Open the stream page on the computer:
 
 ```txt
 https://localhost:5173/stream.html
@@ -162,286 +252,150 @@ Click:
 Share screen
 ```
 
-Then allow the browser to capture your screen.
+Choose the screen, window or tab you want to share.
 
-### 2. Open the XR scene on the headset
+---
 
-On the Meta Quest or another WebXR compatible headset, open:
+## How to test on Meta Quest
+
+Open the stable AR shell in the Meta Quest browser:
 
 ```txt
-https://YOUR_LOCAL_IP:5173/demo-scene.html
+https://YOUR_LOCAL_IP:5173/dev-shell.html
 ```
 
 Example:
 
 ```txt
-https://192.168.0.10:5173/demo-scene.html
+https://192.168.1.51:5173/dev-shell.html
 ```
 
-### 3. Enter WebXR mode
+Then:
 
-Enter the immersive session.
-
-### 4. Activate the overlay
-
-Click the overlay button inside the scene.
-
-When the overlay is enabled:
-
-- the streamed computer screen appears inside the scene
-- elements marked with `dev-overlay-hide-when-active` are hidden
-
-When the overlay is disabled:
-
-- the streamed screen is hidden
-- the marked scene elements are restored
+1. Enter AR mode
+2. Press the small blue overlay button
+3. The streamed computer screen should appear inside the scene
+4. Elements marked with `dev-overlay-hide-when-active` should disappear
+5. Elements without that class should remain visible
 
 ---
 
-## Complete integration into another project
-
-To use Dev Overlay with screen streaming in another A-Frame project, you need to integrate three parts:
-
-1. The overlay component inside the XR scene
-2. The stream page used on the computer
-3. The Vite WebSocket signaling configuration
-
----
-
-### 1. Copy the required files
-
-Copy these files into your project:
+## Recommended testing flow
 
 ```txt
-src/dev-overlay.js
-public/stream.html
-vite.config.js
-```
-
-Example structure:
-
-```txt
-my-project/
-├── package.json
-├── vite.config.js
-├── index.html
-├── src/
-│   └── dev-overlay.js
-└── public/
-    └── stream.html
+1. Start the Vite dev server
+2. Open /stream.html on the computer
+3. Click Share screen
+4. Open /dev-shell.html on the Quest
+5. Enter AR mode
+6. Press the blue overlay button
+7. Edit src/project/project-scene.html
+8. Save the file
+9. The scene should update without leaving AR
 ```
 
 ---
 
-### 2. Configure Vite
+## Editing the project scene
 
-The project depends on Vite because Vite serves the application and hosts the custom WebSocket signaling endpoint.
-
-A simplified version of the required Vite plugin is:
-
-```js
-import basicSsl from '@vitejs/plugin-basic-ssl';
-import { WebSocketServer } from 'ws';
-
-function devOverlaySignaling() {
-  return {
-    name: 'dev-overlay-signaling',
-
-    configureServer(server) {
-      if (!server.httpServer) {
-        return;
-      }
-
-      const wss = new WebSocketServer({ noServer: true });
-
-      server.httpServer.on('upgrade', (request, socket, head) => {
-        const url = new URL(request.url, 'https://localhost');
-
-        if (url.pathname !== '/dev-overlay-ws') {
-          return;
-        }
-
-        wss.handleUpgrade(request, socket, head, (ws) => {
-          wss.emit('connection', ws, request);
-        });
-      });
-
-      wss.on('connection', (ws) => {
-        console.log('[vite] dev-overlay client connected');
-
-        ws.on('message', (raw) => {
-          let message;
-
-          try {
-            message = JSON.parse(raw.toString());
-          } catch {
-            return;
-          }
-
-          console.log('[vite] signal:', message.type, message.source);
-
-          wss.clients.forEach((client) => {
-            if (client !== ws && client.readyState === client.OPEN) {
-              client.send(JSON.stringify(message));
-            }
-          });
-        });
-
-        ws.on('close', () => {
-          console.log('[vite] dev-overlay client disconnected');
-        });
-      });
-    }
-  };
-}
-
-export default {
-  plugins: [
-    basicSsl(),
-    devOverlaySignaling()
-  ],
-
-  server: {
-    host: true,
-    https: true
-  }
-};
-```
-
-This configuration creates the WebSocket endpoint:
+The developer should edit:
 
 ```txt
-/dev-overlay-ws
+src/project/project-scene.html
 ```
 
-This endpoint is used by both:
-
-- `stream.html`
-- `dev-overlay.js`
-
----
-
-### 3. Import A-Frame and the component
-
-In your main scene HTML file:
+Example:
 
 ```html
-<script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+<a-box
+  position="0 1 -2"
+  width="0.5"
+  height="0.5"
+  depth="0.5"
+  color="#38BDF8">
+</a-box>
+```
+
+Changing the color:
+
+```html
+color="#F97316"
+```
+
+After saving the file, the scene content is remounted inside the shell.
+
+The full page does not need to reload.
+
+---
+
+## Project scene rules
+
+The editable scene must be written inside:
+
+```txt
+src/project/project-scene.html
+```
+
+Do not include:
+
+```html
+<html>
+<head>
+<body>
+<a-scene>
+```
+
+Only include A-Frame entities:
+
+```html
+<a-box></a-box>
+<a-plane></a-plane>
+<a-text></a-text>
+<a-entity></a-entity>
+<a-sphere></a-sphere>
+<a-cylinder></a-cylinder>
+```
+
+The stable shell owns:
+
+```html
+<a-scene>
+```
+
+The editable scene is mounted inside:
+
+```html
+<a-entity id="project-root"></a-entity>
+```
+
+Do not rename or remove:
+
+```html
+id="project-root"
+```
+
+Do not remove this import from `dev-shell.html`:
+
+```html
+<script type="module" src="/src/project/project-loader.js"></script>
+```
+
+Do not remove this import from `dev-shell.html`:
+
+```html
 <script type="module" src="/src/dev-overlay.js"></script>
 ```
 
 ---
 
-### 4. Enable the component in the scene
+## Selective hiding
 
-Add the `dev-overlay` component to your `<a-scene>`:
+The overlay can hide only selected elements.
 
-```html
-<a-scene dev-overlay>
-</a-scene>
-```
-
-You can also configure the size and position of the streamed screen:
+To make an element disappear when the overlay is active, add:
 
 ```html
-<a-scene dev-overlay="width: 1.35; height: 0.76; position: 0 1.45 -1.25">
-</a-scene>
-```
-
----
-
-### 5. Add a toggle button
-
-The overlay can be activated using any entity with the `dev-overlay-trigger` component.
-
-Basic example:
-
-```html
-<a-entity
-  class="clickable"
-  dev-overlay-trigger
-  geometry="primitive: box; width: 0.06; height: 0.06; depth: 0.04"
-  material="color: #24CAFF">
-</a-entity>
-```
-
-Make sure your scene raycaster targets `.clickable` objects:
-
-```html
-<a-scene
-  raycaster="objects: .clickable"
-  cursor="rayOrigin: mouse">
-</a-scene>
-```
-
-For controller interaction, you can also use:
-
-```html
-<a-entity
-  laser-controls="hand: right"
-  raycaster="objects: .clickable"
-  cursor="rayOrigin: entity; fuse: false">
-</a-entity>
-```
-
----
-
-## HUD style button
-
-A recommended approach is to make the overlay button follow the user's view.
-
-This can be done with the `follow-camera` component.
-
-Example:
-
-```html
-<a-entity follow-camera>
-  <a-box
-    class="clickable"
-    dev-overlay-trigger
-    width="0.06"
-    height="0.06"
-    depth="0.08"
-    material="opacity: 0; transparent: true">
-  </a-box>
-
-  <a-box
-    width="0.06"
-    height="0.06"
-    depth="0.045"
-    color="#24CAFF"
-    material="
-      roughness: 0.25;
-      metalness: 0.1;
-      emissive: #0A6B80;
-      emissiveIntensity: 0.25
-    ">
-  </a-box>
-
-  <a-box
-    width="0.062"
-    height="0.062"
-    depth="0.047"
-    color="#001018"
-    material="wireframe: true">
-  </a-box>
-</a-entity>
-```
-
-This keeps the button visible during the XR session.
-
-This approach is useful for development tools because the control remains accessible while the user moves inside the immersive environment.
-
----
-
-## Hiding scene elements when the overlay is active
-
-The component can automatically hide parts of the scene when the overlay is enabled.
-
-To do this, add this class to any entity:
-
-```txt
-dev-overlay-hide-when-active
+class="dev-overlay-hide-when-active"
 ```
 
 Example:
@@ -450,154 +404,170 @@ Example:
 <a-plane
   class="dev-overlay-hide-when-active"
   rotation="-90 0 0"
-  width="5"
-  height="5"
-  color="#1F2937">
+  width="4"
+  height="4"
+  color="#111827">
 </a-plane>
 ```
 
-When the overlay is enabled, this element will be hidden.
-
-When the overlay is disabled, it will become visible again.
-
-This feature is useful for creating a productivity mode, where the lower part of the virtual scene is cleared so the developer can better interact with real physical elements such as a keyboard or desk when using AR passthrough.
-
----
-
-## AR passthrough behavior on Meta Quest
-
-When using Meta Quest in WebXR AR mode, the real environment can be visible if the scene does not block it with virtual geometry.
-
-To allow the real environment to remain visible:
-
-- avoid using `<a-sky>`
-- use transparent rendering
-- hide lower scene elements when the overlay is active
-
-Recommended scene configuration:
-
-```html
-<a-scene
-  xr-mode="ar"
-  renderer="colorManagement: true; alpha: true"
-  background="transparent: true">
-</a-scene>
-```
-
-Avoid this in AR passthrough mode:
-
-```html
-<a-sky color="#0F172A"></a-sky>
-```
-
-An `<a-sky>` creates a full virtual background and will block the real environment.
-
----
-
-## Component configuration
-
-The `dev-overlay` component accepts the following parameters:
-
-```html
-<a-scene dev-overlay="width: 1.35; height: 0.76; position: 0 1.45 -1.25">
-</a-scene>
-```
-
-| Parameter | Description |
-|---|---|
-| `width` | Width of the streamed screen |
-| `height` | Height of the streamed screen |
-| `position` | Position of the streamed screen in the scene |
-
-Example positions:
-
-```html
-<!-- Higher -->
-<a-scene dev-overlay="position: 0 1.7 -1.25"></a-scene>
-
-<!-- Lower -->
-<a-scene dev-overlay="position: 0 1.2 -1.25"></a-scene>
-
-<!-- Closer -->
-<a-scene dev-overlay="position: 0 1.45 -0.8"></a-scene>
-
-<!-- Farther -->
-<a-scene dev-overlay="position: 0 1.45 -1.8"></a-scene>
-
-<!-- To the right -->
-<a-scene dev-overlay="position: 0.4 1.45 -1.25"></a-scene>
-```
-
----
-
-## Events
-
-The component emits events when the overlay changes state.
-
-Overlay enabled:
-
-```js
-scene.addEventListener('dev-overlay-enabled', () => {
-  console.log('Overlay enabled');
-});
-```
-
-Overlay disabled:
-
-```js
-scene.addEventListener('dev-overlay-disabled', () => {
-  console.log('Overlay disabled');
-});
-```
-
-These events can be used by the developer to add custom behavior when the overlay is activated or deactivated.
-
----
-
-## Architecture
-
-The system is divided into three main parts.
-
-### 1. XR scene
-
-The XR scene is loaded in the headset.
-
-It contains:
-
-- the A-Frame scene
-- the `dev-overlay` component
-- the virtual screen
-- the toggle button
-- optional elements that are hidden when the overlay is active
-
-### 2. Stream page
-
-The stream page is opened on the computer.
-
-It is responsible for:
-
-- requesting screen capture with `getDisplayMedia`
-- creating a WebRTC connection
-- sending the screen stream to the XR scene
-- reconnecting when the XR scene reloads
-
-The stream page is placed inside `public/stream.html` so it is not affected by Vite HMR.
-
-This is important because if the stream page reloads, the browser stops the screen capture and the user must manually approve it again.
-
-### 3. Vite signaling server
-
-Vite is used as the development server.
-
-A custom WebSocket endpoint is added to the Vite server:
+When the overlay is active:
 
 ```txt
-/dev-overlay-ws
+elements with dev-overlay-hide-when-active → hidden
+elements without dev-overlay-hide-when-active → remain visible
 ```
 
-This endpoint forwards WebRTC signaling messages between the stream page and the XR scene.
+This allows the developer to clear the lower work area while keeping titles, instructions and debugging panels visible.
 
-The signaling messages are:
+---
+
+## Example project scene
+
+Example content for:
+
+```txt
+src/project/project-scene.html
+```
+
+```html
+<a-plane
+  class="dev-overlay-hide-when-active"
+  rotation="-90 0 0"
+  width="5"
+  height="5"
+  color="#111827"
+  opacity="0.9"
+  position="0 0 -1.5">
+</a-plane>
+
+<a-text
+  value="Live WebXR scene"
+  align="center"
+  color="#FFFFFF"
+  position="0 2 -2.5"
+  width="4">
+</a-text>
+
+<a-box
+  position="0 0.7 -1.6"
+  width="0.5"
+  height="0.5"
+  depth="0.5"
+  color="#38BDF8">
+</a-box>
+
+<a-text
+  value="This text stays visible when the overlay is active"
+  align="center"
+  color="#E5E7EB"
+  position="0 1.4 -2.4"
+  width="3">
+</a-text>
+```
+
+---
+
+## How the live scene reload works
+
+The shell loads the project scene using:
+
+```js
+import sceneHtml from './project-scene.html?raw';
+```
+
+The HTML is inserted into:
+
+```html
+<a-entity id="project-root"></a-entity>
+```
+
+When the project scene changes, the loader replaces the content inside `project-root`.
+
+The shell itself remains alive.
+
+This preserves:
+
+- the WebXR AR session
+- the dev overlay
+- the WebRTC signaling connection
+- the overlay button
+- the stream page connection
+
+---
+
+## Why the shell exists
+
+Full page reloads can terminate or corrupt WebXR AR sessions on standalone headsets.
+
+The shell avoids that by keeping the page that owns the AR session stable.
+
+Instead of reloading:
+
+```txt
+entire page
+```
+
+the system reloads only:
+
+```txt
+editable project scene
+```
+
+This is why the architecture uses:
+
+```txt
+dev-shell.html
+→ stable page
+
+project-scene.html
+→ editable content
+```
+
+---
+
+## Stream page behavior
+
+The stream page is located at:
+
+```txt
+public/stream.html
+```
+
+It is opened on the computer.
+
+It captures the desktop using:
+
+```js
+navigator.mediaDevices.getDisplayMedia()
+```
+
+The stream page should not be moved back into the normal HMR flow.
+
+If the stream page reloads, browser security stops the screen capture.
+
+That is why the stream page is served as a static file.
+
+---
+
+## Communication flow
+
+```txt
+Computer:
+public/stream.html
+→ captures the screen
+→ creates WebRTC offer
+
+Vite WebSocket:
+/dev-overlay-ws
+→ forwards signaling messages
+
+Quest:
+dev-shell.html
+→ receives WebRTC stream through dev-overlay
+→ renders the screen inside WebXR
+```
+
+Signaling messages include:
 
 ```txt
 rtc:connect
@@ -608,181 +578,190 @@ rtc:ice
 
 ---
 
-## Communication flow
-
-```txt
-1. demo-scene.html opens in the headset
-2. dev-overlay connects to /dev-overlay-ws
-3. public/stream.html opens on the computer
-4. stream.html connects to /dev-overlay-ws
-5. user clicks "Share screen"
-6. stream.html captures the desktop with getDisplayMedia
-7. stream.html sends rtc:offer
-8. dev-overlay receives the offer
-9. dev-overlay sends rtc:answer
-10. both sides exchange rtc:ice candidates
-11. WebRTC connection is established
-12. the computer screen is rendered inside the XR scene
-```
-
----
-
-## Hot reload and reconnection
-
-Earlier versions used Vite HMR directly for signaling.
-
-That approach worked initially, but created a problem:
-
-```txt
-HTML file changes
-→ Vite sends full reload to all HMR clients
-→ stream.html reloads
-→ browser stops getDisplayMedia
-→ user must click Share screen again
-```
-
-The current version fixes this by moving `stream.html` into the `public/` directory and using a custom WebSocket endpoint instead of the Vite HMR client.
-
-Now the behavior is:
-
-```txt
-developer changes the XR scene
-→ Vite reloads the scene
-→ stream.html does not reload
-→ screen capture remains active
-→ dev-overlay reconnects automatically
-→ stream returns without clicking Share screen again
-```
-
-This preserves the purpose of the project: reducing the need to remove the headset during development.
-
----
-
-## Why `stream.html` is inside `public/`
-
-`public/stream.html` is served as a static asset by Vite.
-
-This means it does not include the Vite HMR client and is not automatically reloaded when the developer changes the XR scene.
-
-This is necessary because browser screen capture cannot survive a page reload.
-
-If `stream.html` reloads, `getDisplayMedia` is stopped by the browser for security reasons.
-
----
-
-## Limitations
-
-- The first screen capture still requires a user gesture.
-- If `stream.html` itself is reloaded, the user must click "Share screen" again.
-- If the Vite server restarts, the WebSocket reconnects, but the WebRTC session may need to be recreated.
-- Browser support depends on WebXR and WebRTC availability.
-- Passthrough visibility depends on the headset browser and AR mode support.
-- The project does not access headset camera frames directly.
-- The component does not record the real environment.
-
----
-
-## Why Vite is used
-
-Vite is used because it provides:
-
-- a fast development server
-- HTTPS support through `@vitejs/plugin-basic-ssl`
-- easy local network access with `--host`
-- modern frontend workflow
-- simple integration with custom plugins
-- a convenient place to host the WebSocket signaling endpoint
-
-This removes the need for a separate HTTPS Express server or manually generated certificates.
-
----
-
-## Evolution of the project
-
-### v1
-
-The first version used:
-
-- a custom HTTPS server
-- Express
-- WebSocket
-- manually generated certificates
-
-Problems:
-
-- required manual certificate setup
-- increased configuration complexity
-- mixed app serving, signaling, and development logic
-- made the project harder to reuse
-
-### v2
-
-The second version explored:
-
-- PeerJS
-- a more component based structure
-- easier WebRTC abstraction
-
-Problems:
-
-- added external dependency
-- reduced control over the signaling layer
-- moved away from the original architecture being studied
-
-### v3
-
-The third version uses:
-
-- Vite Dev Server
-- WebRTC
-- a custom WebSocket signaling endpoint
-- a reusable A-Frame component
-- a static stream page outside HMR
-- automatic scene adaptation
-
-Improvements:
-
-- simpler architecture
-- no manual certificates
-- reusable component
-- clearer demo
-- better reconnection behavior
-- better support for real development workflow
-
----
-
-## Quick start
-
-```bash
-npm install
-npm run dev
-```
-
-Then open:
+## Main development workflow
 
 ```txt
 Computer:
-https://localhost:5173/stream.html
+1. Open /stream.html
+2. Click Share screen
+3. Edit src/project/project-scene.html
 
-Headset:
-https://YOUR_LOCAL_IP:5173/demo-scene.html
+Quest:
+1. Open /dev-shell.html
+2. Enter AR
+3. Press the overlay button
+4. Watch the scene update while staying in AR
 ```
 
-Click "Share screen" on the computer, then activate the overlay inside the WebXR scene.
+---
+
+## Recommended video demo flow
+
+For a short demo video:
+
+```txt
+1. Open stream.html on the computer
+2. Click Share screen
+3. Open dev-shell.html on Meta Quest
+4. Enter AR mode
+5. Press the overlay button
+6. Show the computer screen inside AR
+7. Edit src/project/project-scene.html
+8. Change the color of a cube or pyramid
+9. Save the file
+10. Show the scene updating without leaving AR
+11. Toggle the overlay to show selected scene elements disappearing
+```
+
+Suggested caption:
+
+```txt
+Live WebXR development inside Meta Quest AR using A-Frame, Vite and WebRTC.
+```
+
+---
+
+## What should stay visible when the overlay is active
+
+Use no special class for elements that should stay visible.
+
+Good examples:
+
+```txt
+title
+instructions
+debugging panels
+context text
+important labels
+```
+
+These elements should not use:
+
+```html
+class="dev-overlay-hide-when-active"
+```
+
+---
+
+## What should disappear when the overlay is active
+
+Use:
+
+```html
+class="dev-overlay-hide-when-active"
+```
+
+for elements such as:
+
+```txt
+floor
+desk
+lower work area
+temporary objects
+large scene geometry
+objects that block keyboard visibility
+```
+
+This demonstrates selective scene control.
+
+---
+
+## Current main files
+
+Use these files for the final workflow:
+
+```txt
+dev-shell.html
+public/stream.html
+src/dev-overlay.js
+src/project/project-loader.js
+src/project/project-scene.html
+vite.config.js
+```
+
+The older `demo-scene.html` may remain in the repository as a legacy/original demo, but the recommended entry point for the current architecture is:
+
+```txt
+dev-shell.html
+```
+
+---
+
+## Troubleshooting
+
+### The scene does not update after saving
+
+Make sure you are editing:
+
+```txt
+src/project/project-scene.html
+```
+
+Do not edit `dev-shell.html` for normal scene changes.
+
+---
+
+### The browser asks to share the screen again
+
+This usually means `stream.html` was reloaded.
+
+Open it again and click:
+
+```txt
+Share screen
+```
+
+Avoid editing `public/stream.html` during a live test.
+
+---
+
+### The overlay is active but hidden elements reappear after saving
+
+The loader should reapply the overlay visibility state after remounting the scene.
+
+Make sure the elements that should disappear have:
+
+```html
+class="dev-overlay-hide-when-active"
+```
+
+---
+
+### AR turns black or leaves passthrough
+
+Make sure the shell does not use:
+
+```html
+<a-sky></a-sky>
+```
+
+Use transparent rendering:
+
+```html
+renderer="colorManagement: true; alpha: true"
+background="transparent: true"
+```
+
+The current entry point for AR testing should be:
+
+```txt
+dev-shell.html
+```
 
 ---
 
 ## Summary
 
-Dev Overlay for WebXR is a development tool that brings the computer screen into an immersive A-Frame scene.
+Dev Overlay for WebXR provides a stable AR development environment for A-Frame projects.
 
-It helps developers stay inside the headset while editing, debugging, and testing XR experiences.
+The key idea is to separate the stable AR shell from the editable project scene.
 
-The current version focuses on:
+```txt
+dev-shell.html
+→ keeps AR alive
 
-- reusable integration
-- WebRTC screen streaming
-- Vite based development
-- stable screen capture during hot reload
-- automatic scene adaptation
-- practical use in Meta Quest AR or VR development
+project-scene.html
+→ changes during development
+```
+
+This allows developers to edit A-Frame HTML content while staying inside the Meta Quest AR session and viewing the computer screen through the dev overlay.
