@@ -1,14 +1,41 @@
-<!-- Lower work area. This disappears when the overlay is active. -->
-<a-plane
-  class="dev-overlay-hide-when-active"
-  rotation="-90 0 0"
-  width="6"
-  height="5"
-  color="#111827"
-  opacity="0.88"
-  position="0 0 -1.9">
-</a-plane>
+<!-- Standalone editable shapes -->
+<a-box
+  id="house-body"
+  position="-0.00 0.85 -0.70"
+  width="0.20" height="0.20" depth="0.20"
+  color="gray" material="roughness: 0.35; metalness: 0.08"
+  animation="property: rotation; to: 0 360 0; loop: true; dur: 4500; easing: linear"
+  >
+</a-box>
 
+<a-cone
+  id="house-roof"
+  position="0.40 1.03 -0.70"
+  radius-bottom="0.16" radius-top="0" height="0.16"
+  segments-radial="4" rotation="0 45 0"
+  color="gray" material="roughness: 0.35; metalness: 0.08"
+  animation="property: rotation; to: 0 405 0; loop: true; dur: 4500; easing: linear"
+  >
+</a-cone>
+
+<!-- REFERENCE HOUSE -->
+<a-box
+  id="house-body-ref"
+  position="-0.40 0.85 -0.70"
+  width="0.20" height="0.20" depth="0.20"
+  color="blue" material="roughness: 0.35; metalness: 0.08">
+</a-box>
+
+<a-cone
+  id="house-roof-ref"
+  position="-0.40 1.03 -0.70"
+  radius-bottom="0.16" radius-top="0" height="0.16"
+  segments-radial="4" rotation="0 45 0"
+  color="orange" material="roughness: 0.35; metalness: 0.08">
+</a-cone>
+
+
+<!-- Lower work area. This disappears when the overlay is active. -->
 <a-plane
   class="dev-overlay-hide-when-active"
   rotation="-90 0 0"
@@ -16,17 +43,17 @@
   height="1.1"
   color="#16A34A"
   opacity="0.72"
-  position="0 0.018 -0.9">
+  position="0 0.718 -0.75">
 </a-plane>
 
 <a-text
   class="dev-overlay-hide-when-active"
-  value="lower area cleared when overlay is active"
+  value="This plane hides the keyboard!"
   align="center"
   color="#FFFFFF"
-  position="0 0.055 -0.9"
+  position="0 0.75 -0.4"
   rotation="-90 0 0"
-  width="2.5">
+  width="1.2">
 </a-text>
 
 <!-- Main title -->
@@ -34,234 +61,14 @@
   value="Live WebXR Development"
   align="center"
   color="#FFFFFF"
-  position="0 2.3 -2.45"
+  position="0 2.7 -2.45"
   width="4.2">
 </a-text>
 
 <a-text
-  value="Build and edit a simple house without leaving Meta Quest AR"
+  value="Edit the scene without leaving AR"
   align="center"
   color="#CBD5E1"
-  position="0 2.02 -2.45"
-  width="3.9">
-</a-text>
-
-<!-- Main explanation panel -->
-<a-plane
-  position="0 1.5 -2.65"
-  width="2.8"
-  height="0.82"
-  color="#020617"
-  opacity="0.9">
-</a-plane>
-
-<a-text
-  value="The AR shell stays alive.&#10;Only the editable project scene updates live."
-  color="#E5E7EB"
-  position="0 1.65 -2.64"
-  align="center"
-  width="2.3">
-</a-text>
-
-<!-- Table / support area that disappears with overlay -->
-<a-box
-  class="dev-overlay-hide-when-active"
-  position="0 0.36 -1.15"
-  width="2.7"
-  height="0.08"
-  depth="0.95"
-  color="#475569">
-</a-box>
-
-<a-box
-  class="dev-overlay-hide-when-active"
-  position="-1.18 0.18 -0.82"
-  width="0.08"
-  height="0.36"
-  depth="0.08"
-  color="#020617">
-</a-box>
-
-<a-box
-  class="dev-overlay-hide-when-active"
-  position="1.18 0.18 -0.82"
-  width="0.08"
-  height="0.36"
-  depth="0.08"
-  color="#020617">
-</a-box>
-
-<a-box
-  class="dev-overlay-hide-when-active"
-  position="-1.18 0.18 -1.48"
-  width="0.08"
-  height="0.36"
-  depth="0.08"
-  color="#020617">
-</a-box>
-
-<a-box
-  class="dev-overlay-hide-when-active"
-  position="1.18 0.18 -1.48"
-  width="0.08"
-  height="0.36"
-  depth="0.08"
-  color="#020617">
-</a-box>
-
-<a-text
-  class="dev-overlay-hide-when-active"
-  value="This lower scene area disappears when the overlay is active"
-  align="center"
-  color="#FFFFFF"
-  position="0 0.6 -1.03"
+  position="0 2.52 -2.45"
   width="2.5">
-</a-text>
-
-<!-- HOUSE -->
-<!-- Change this cube color during the video -->
-<a-box
-  id="house-body"
-  position="0 0.68 -1.75"
-  width="0.78"
-  height="0.62"
-  depth="0.72"
-  color="#38BDF8"
-  material="roughness: 0.35; metalness: 0.08">
-</a-box>
-
-<!-- Change this roof color during the video if desired -->
-<a-cone
-  id="house-roof"
-  position="0 1.12 -1.75"
-  radius-bottom="0.62"
-  radius-top="0"
-  height="0.42"
-  segments-radial="4"
-  rotation="0 45 0"
-  color="#F97316"
-  material="roughness: 0.35; metalness: 0.08">
-</a-cone>
-
-<a-box
-  position="0 0.48 -1.38"
-  width="0.18"
-  height="0.28"
-  depth="0.02"
-  color="#0F172A">
-</a-box>
-
-<a-box
-  position="-0.22 0.75 -1.38"
-  width="0.14"
-  height="0.14"
-  depth="0.02"
-  color="#BAE6FD">
-</a-box>
-
-<a-box
-  position="0.22 0.75 -1.38"
-  width="0.14"
-  height="0.14"
-  depth="0.02"
-  color="#BAE6FD">
-</a-box>
-
-<a-text
-  value="Simple house = cube + pyramid roof"
-  align="center"
-  color="#FFFFFF"
-  position="0 1.48 -1.75"
-  width="2.1">
-</a-text>
-
-<!-- Standalone editable shapes -->
-<!-- Change this pyramid color during the video -->
-<a-cone
-  position="1.15 0.58 -1.7"
-  radius-bottom="0.34"
-  radius-top="0"
-  height="0.7"
-  segments-radial="4"
-  rotation="0 45 0"
-  color="#A78BFA"
-  material="roughness: 0.3; metalness: 0.12">
-</a-cone>
-
-<a-text
-  value="Pyramid"
-  align="center"
-  color="#FFFFFF"
-  position="1.15 1.05 -1.7"
-  width="1.2">
-</a-text>
-
-<!-- Change this cube color during the video -->
-<a-box
-  position="-1.15 0.58 -1.7"
-  width="0.5"
-  height="0.5"
-  depth="0.5"
-  color="#22C55E"
-  material="roughness: 0.28; metalness: 0.15"
-  animation="property: rotation; to: 0 360 0; loop: true; dur: 8500">
-</a-box>
-
-<a-text
-  value="Cube"
-  align="center"
-  color="#FFFFFF"
-  position="-1.15 1.0 -1.7"
-  width="1.2">
-</a-text>
-
-<!-- Left instruction panel stays visible -->
-<a-plane
-  position="-1.8 1.15 -2.3"
-  width="1.35"
-  height="0.95"
-  color="#020617"
-  opacity="0.9">
-</a-plane>
-
-<a-text
-  value="Recording flow:&#10;1. Open stream.html&#10;2. Share screen&#10;3. Open dev-shell.html&#10;4. Enter AR&#10;5. Toggle overlay"
-  color="#E5E7EB"
-  position="-1.8 1.32 -2.29"
-  align="center"
-  width="1.15">
-</a-text>
-
-<!-- Right panel stays visible -->
-<a-plane
-  position="1.8 1.15 -2.3"
-  width="1.35"
-  height="0.95"
-  color="#020617"
-  opacity="0.9">
-</a-plane>
-
-<a-text
-  value="Live edit demo:&#10;Change the cube or roof color&#10;Save the file&#10;Watch the house update&#10;without leaving AR"
-  color="#E5E7EB"
-  position="1.8 1.32 -2.29"
-  align="center"
-  width="1.15">
-</a-text>
-
-<!-- Bottom info panel stays visible -->
-<a-plane
-  position="0 0.78 -2.8"
-  width="2.15"
-  height="0.56"
-  color="#0F172A"
-  opacity="0.92">
-</a-plane>
-
-<a-text
-  value="Editable file: src/project/project-scene.html&#10;Stable shell: dev-shell.html"
-  color="#BAE6FD"
-  position="0 0.89 -2.79"
-  align="center"
-  width="1.8">
 </a-text>
