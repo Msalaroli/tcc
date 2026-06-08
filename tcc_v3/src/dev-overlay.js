@@ -59,6 +59,10 @@ AFRAME.registerComponent('dev-overlay', {
     this.sendDevLog('log', 'Component initialized');
   },
 
+  update: function () {
+    this.applyScreenLayout();
+  },
+
   remove: function () {
     if (this.debugIntervalId) {
       clearInterval(this.debugIntervalId);
@@ -105,17 +109,40 @@ AFRAME.registerComponent('dev-overlay', {
     const screen = document.createElement('a-video');
 
     screen.setAttribute('src', '#devOverlayRemoteVideo');
-    screen.setAttribute('width', this.data.width);
-    screen.setAttribute('height', this.data.height);
-    screen.setAttribute(
-      'position',
-      `${this.data.position.x} ${this.data.position.y} ${this.data.position.z}`
-    );
     screen.setAttribute('material', 'shader: flat; side: double');
     screen.setAttribute('visible', false);
 
     this.el.sceneEl.appendChild(screen);
     this.screen = screen;
+
+    this.applyScreenLayout();
+  },
+
+  applyScreenLayout: function () {
+    if (!this.screen) {
+      return;
+    }
+
+    this.screen.setAttribute('width', this.data.width);
+    this.screen.setAttribute('height', this.data.height);
+    this.screen.setAttribute(
+      'position',
+      `${this.data.position.x} ${this.data.position.y} ${this.data.position.z}`
+    );
+  },
+
+  setOverlayConfig: function (config) {
+    const position = config.position || this.data.position;
+    const size = config.size || {
+      width: this.data.width,
+      height: this.data.height
+    };
+
+    this.el.setAttribute('dev-overlay', {
+      width: size.width,
+      height: size.height,
+      position
+    });
   },
 
   createHud: function () {
