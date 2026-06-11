@@ -1,8 +1,0 @@
-services:
-  xr-remote-display:
-    build: .
-    ports:
-      - "3000:3000"
-    volumes:
-      - .:/app
-    restart: unless-stopped
