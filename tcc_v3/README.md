@@ -10,7 +10,7 @@ This helps reduce the development loop for XR applications, especially when test
 
 ## Main idea
 
-The project is divided into two layers:
+The project is divided into three main parts:
 
 ```txt
 dev-shell.html
@@ -24,12 +24,23 @@ src/project/project-scene.html
 → editable A-Frame scene
 → loaded inside project-root
 → can be changed during development
+
+src/dev-overlay-position.js
+→ editable overlay screen position and size
+→ can be changed during development
+→ updates the overlay without reloading dev-shell.html
 ```
 
-The developer edits:
+The developer edits the project scene here:
 
 ```txt
 src/project/project-scene.html
+```
+
+The developer edits the overlay screen position here:
+
+```txt
+src/dev-overlay-position.js
 ```
 
 The shell stays alive:
@@ -38,7 +49,7 @@ The shell stays alive:
 dev-shell.html
 ```
 
-This means the editable scene can be remounted without fully reloading the page that owns the AR session.
+This means the editable scene and overlay position can be updated without fully reloading the page that owns the AR session.
 
 ---
 
@@ -51,6 +62,7 @@ This means the editable scene can be remounted without fully reloading the page 
 - Provides a stable AR shell for Meta Quest
 - Loads the editable A-Frame scene from an external HTML file
 - Reloads only the project scene during development
+- Allows the overlay screen position and size to be adjusted through code
 - Allows selected scene elements to disappear when the overlay is active
 - Keeps other elements visible to preserve instructions or debugging context
 
@@ -76,11 +88,11 @@ tcc_v3/
 ├── vite.config.js
 ├── README.md
 ├── dev-shell.html
-├── demo-scene.html
 ├── public/
 │   └── stream.html
 └── src/
     ├── dev-overlay.js
+    ├── dev-overlay-position.js
     └── project/
         ├── project-loader.js
         └── project-scene.html
@@ -105,6 +117,8 @@ It contains:
 - hand controls
 - lights
 - `<a-entity id="project-root"></a-entity>`
+- import for `dev-overlay.js`
+- import for `dev-overlay-position.js`
 - import for `project-loader.js`
 
 This file should not contain the editable project scene.
@@ -114,6 +128,85 @@ The editable scene is loaded into:
 ```html
 <a-entity id="project-root"></a-entity>
 ```
+
+The overlay position can be configured through:
+
+```txt
+src/dev-overlay-position.js
+```
+
+Avoid editing `dev-shell.html` during an active AR session. It is the page that owns the WebXR session, so changing it may cause a full page reload.
+
+---
+
+### `src/dev-overlay.js`
+
+This is the reusable A-Frame component.
+
+It is responsible for:
+
+- creating the virtual screen
+- receiving the WebRTC stream
+- rendering the computer screen inside the XR scene
+- toggling the overlay on and off
+- hiding elements marked with `dev-overlay-hide-when-active`
+- updating the overlay screen layout when position or size changes
+- keeping debugging context visible when needed
+- logging XR/WebRTC state for development
+
+The component supports dynamic layout updates through the component data:
+
+```txt
+width
+height
+position
+```
+
+This allows `src/dev-overlay-position.js` to update the overlay screen without reloading the shell.
+
+---
+
+### `src/dev-overlay-position.js`
+
+This file controls the overlay screen position and size.
+
+It is designed to be edited during development without reloading `dev-shell.html`.
+
+Example:
+
+```js
+export const overlayPosition = {
+  x: 0,
+  y: 1.3,
+  z: -1.25
+};
+
+export const overlaySize = {
+  width: 1.35,
+  height: 0.76
+};
+```
+
+Changing this file allows the developer to move or resize the overlay screen while staying inside AR.
+
+For example:
+
+```js
+export const overlayPosition = {
+  x: 0.2,
+  y: 1.45,
+  z: -1.4
+};
+
+export const overlaySize = {
+  width: 1.5,
+  height: 0.84
+};
+```
+
+After saving the file, Vite HMR updates only this module and reapplies the overlay configuration.
+
+The shell does not need to reload.
 
 ---
 
@@ -165,21 +258,7 @@ It also supports live scene reload during development.
 
 When `project-scene.html` changes, the loader remounts the scene content without reloading the full page.
 
----
-
-### `src/dev-overlay.js`
-
-This is the reusable A-Frame component.
-
-It is responsible for:
-
-- creating the virtual screen
-- receiving the WebRTC stream
-- rendering the computer screen inside the XR scene
-- toggling the overlay on and off
-- hiding elements marked with `dev-overlay-hide-when-active`
-- keeping debugging context visible when needed
-- logging XR/WebRTC state for development
+It also reapplies the overlay visibility state after remounting, so elements marked with `dev-overlay-hide-when-active` remain hidden if the overlay is already active.
 
 ---
 
@@ -292,6 +371,9 @@ Then:
 7. Edit src/project/project-scene.html
 8. Save the file
 9. The scene should update without leaving AR
+10. Edit src/dev-overlay-position.js
+11. Save the file
+12. The overlay screen should move or resize without leaving AR
 ```
 
 ---
@@ -328,6 +410,98 @@ The full page does not need to reload.
 
 ---
 
+## Editing the overlay screen position
+
+The overlay screen position and size should be edited in:
+
+```txt
+src/dev-overlay-position.js
+```
+
+Example:
+
+```js
+export const overlayPosition = {
+  x: 0,
+  y: 1.3,
+  z: -1.25
+};
+
+export const overlaySize = {
+  width: 1.35,
+  height: 0.76
+};
+```
+
+The meaning of the position values:
+
+```txt
+x → horizontal position
+y → vertical position
+z → depth
+```
+
+In A-Frame, more negative `z` values move the overlay farther forward in front of the user.
+
+Example:
+
+```js
+export const overlayPosition = {
+  x: 0.15,
+  y: 1.45,
+  z: -1.45
+};
+```
+
+This moves the overlay:
+
+```txt
+slightly to the right
+slightly higher
+farther forward
+```
+
+To make the overlay larger:
+
+```js
+export const overlaySize = {
+  width: 1.5,
+  height: 0.84
+};
+```
+
+After saving `src/dev-overlay-position.js`, the overlay layout is reapplied through HMR without reloading `dev-shell.html`.
+
+---
+
+## What can be edited during AR
+
+Safe to edit during an active AR session:
+
+```txt
+src/project/project-scene.html
+src/dev-overlay-position.js
+```
+
+Avoid editing during an active AR session:
+
+```txt
+dev-shell.html
+src/dev-overlay.js
+src/project/project-loader.js
+public/stream.html
+vite.config.js
+```
+
+Reason:
+
+```txt
+dev-shell.html owns the WebXR AR session.
+project-scene.html and dev-overlay-position.js are designed to update without full page reload.
+```
+
+---
+
 ## Project scene rules
 
 The editable scene must be written inside:
@@ -354,6 +528,7 @@ Only include A-Frame entities:
 <a-entity></a-entity>
 <a-sphere></a-sphere>
 <a-cylinder></a-cylinder>
+<a-cone></a-cone>
 ```
 
 The stable shell owns:
@@ -377,13 +552,19 @@ id="project-root"
 Do not remove this import from `dev-shell.html`:
 
 ```html
-<script type="module" src="/src/project/project-loader.js"></script>
+<script type="module" src="/src/dev-overlay.js"></script>
 ```
 
 Do not remove this import from `dev-shell.html`:
 
 ```html
-<script type="module" src="/src/dev-overlay.js"></script>
+<script type="module" src="/src/dev-overlay-position.js"></script>
+```
+
+Do not remove this import from `dev-shell.html`:
+
+```html
+<script type="module" src="/src/project/project-loader.js"></script>
 ```
 
 ---
@@ -495,6 +676,42 @@ This preserves:
 
 ---
 
+## How the overlay position update works
+
+The shell imports:
+
+```html
+<script type="module" src="/src/dev-overlay-position.js"></script>
+```
+
+That file exports:
+
+```js
+export const overlayPosition = {
+  x: 0,
+  y: 1.3,
+  z: -1.25
+};
+
+export const overlaySize = {
+  width: 1.35,
+  height: 0.76
+};
+```
+
+When the file is saved, it reapplies the overlay configuration to the active `dev-overlay` component.
+
+The overlay screen position and size update without reloading the shell.
+
+This preserves:
+
+- the WebXR AR session
+- the WebRTC stream
+- the current project scene
+- the overlay state
+
+---
+
 ## Why the shell exists
 
 Full page reloads can terminate or corrupt WebXR AR sessions on standalone headsets.
@@ -511,6 +728,7 @@ the system reloads only:
 
 ```txt
 editable project scene
+overlay position configuration
 ```
 
 This is why the architecture uses:
@@ -520,7 +738,10 @@ dev-shell.html
 → stable page
 
 project-scene.html
-→ editable content
+→ editable scene content
+
+dev-overlay-position.js
+→ editable overlay layout config
 ```
 
 ---
@@ -585,12 +806,13 @@ Computer:
 1. Open /stream.html
 2. Click Share screen
 3. Edit src/project/project-scene.html
+4. Edit src/dev-overlay-position.js if the overlay screen needs to move
 
 Quest:
 1. Open /dev-shell.html
 2. Enter AR
 3. Press the overlay button
-4. Watch the scene update while staying in AR
+4. Watch the scene and overlay update while staying in AR
 ```
 
 ---
@@ -610,7 +832,11 @@ For a short demo video:
 8. Change the color of a cube or pyramid
 9. Save the file
 10. Show the scene updating without leaving AR
-11. Toggle the overlay to show selected scene elements disappearing
+11. Edit src/dev-overlay-position.js
+12. Move the overlay screen by changing x, y or z
+13. Save the file
+14. Show the overlay moving without leaving AR
+15. Toggle the overlay to show selected scene elements disappearing
 ```
 
 Suggested caption:
@@ -674,12 +900,13 @@ Use these files for the final workflow:
 dev-shell.html
 public/stream.html
 src/dev-overlay.js
+src/dev-overlay-position.js
 src/project/project-loader.js
 src/project/project-scene.html
 vite.config.js
 ```
 
-The older `demo-scene.html` may remain in the repository as a legacy/original demo, but the recommended entry point for the current architecture is:
+The recommended entry point for the current architecture is:
 
 ```txt
 dev-shell.html
@@ -698,6 +925,24 @@ src/project/project-scene.html
 ```
 
 Do not edit `dev-shell.html` for normal scene changes.
+
+---
+
+### The overlay does not move after editing its position
+
+Make sure you are editing:
+
+```txt
+src/dev-overlay-position.js
+```
+
+Then save the file and check the browser console for:
+
+```txt
+[dev-overlay-position] overlay config applied
+```
+
+If the overlay still does not move, restart the Vite server and test again.
 
 ---
 
@@ -754,14 +999,17 @@ dev-shell.html
 
 Dev Overlay for WebXR provides a stable AR development environment for A-Frame projects.
 
-The key idea is to separate the stable AR shell from the editable project scene.
+The key idea is to separate the stable AR shell from the editable project scene and the editable overlay layout configuration.
 
 ```txt
 dev-shell.html
 → keeps AR alive
 
 project-scene.html
-→ changes during development
+→ changes scene content during development
+
+dev-overlay-position.js
+→ changes overlay screen position and size during development
 ```
 
-This allows developers to edit A-Frame HTML content while staying inside the Meta Quest AR session and viewing the computer screen through the dev overlay.
+This allows developers to edit A-Frame HTML content and adjust the streamed screen layout while staying inside the Meta Quest AR session.
