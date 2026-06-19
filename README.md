@@ -1,4 +1,4 @@
-# TCC v3 · Dev Overlay for WebXR
+# Dev Overlay for WebXR
 
 Dev Overlay is a WebXR development tool built with A-Frame, Vite, WebRTC and WebSocket signaling.
 
