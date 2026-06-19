@@ -33,6 +33,11 @@ AFRAME.registerComponent('dev-overlay', {
     debugIntervalMs: {
       type: 'number',
       default: 15000
+    },
+
+    draggable: {
+      type: 'boolean',
+      default: false
     }
   },
 
@@ -44,6 +49,16 @@ AFRAME.registerComponent('dev-overlay', {
     this.ws = null;
     this.pendingIceCandidates = [];
     this.debugIntervalId = null;
+    this.draggableController = null;
+    this.pointerController = null;
+    this.isDraggingScreen = false;
+    this.isPointerOverScreen = false;
+    this.hasLoggedScreenDragUpdate = false;
+    this.dragStartControllerPosition = new THREE.Vector3();
+    this.dragStartOverlayPosition = new THREE.Vector3();
+    this.dragCurrentOverlayPosition = new THREE.Vector3();
+    this.dragListenersReady = false;
+    this.dragControllerListenerIds = new Set();
 
     this.createRemoteVideo();
     this.createScreen();
@@ -61,6 +76,7 @@ AFRAME.registerComponent('dev-overlay', {
 
   update: function () {
     this.applyScreenLayout();
+    this.applyDraggableState();
   },
 
   remove: function () {
@@ -116,6 +132,7 @@ AFRAME.registerComponent('dev-overlay', {
     this.screen = screen;
 
     this.applyScreenLayout();
+    this.applyDraggableState();
   },
 
   applyScreenLayout: function () {
@@ -141,8 +158,175 @@ AFRAME.registerComponent('dev-overlay', {
     this.el.setAttribute('dev-overlay', {
       width: size.width,
       height: size.height,
+      position,
+      draggable: this.data.draggable
+    });
+  },
+
+  applyDraggableState: function () {
+    if (!this.screen) {
+      return;
+    }
+
+    if (this.data.draggable) {
+      this.screen.classList.add('clickable');
+      this.setupScreenDrag();
+      return;
+    }
+
+    this.screen.classList.remove('clickable');
+    this.stopScreenDrag();
+  },
+
+  setupScreenDrag: function () {
+    if (!this.screen || this.dragListenersReady) {
+      return;
+    }
+
+    this.screen.addEventListener('raycaster-intersected', (event) => {
+      if (!this.data.draggable) {
+        return;
+      }
+
+      this.isPointerOverScreen = true;
+      this.pointerController = event.detail.el || null;
+    });
+
+    this.screen.addEventListener('raycaster-intersected-cleared', (event) => {
+      if (this.pointerController && event.detail.el !== this.pointerController) {
+        return;
+      }
+
+      this.isPointerOverScreen = false;
+      this.pointerController = null;
+    });
+
+    this.setupControllerDragEvents();
+    this.dragListenersReady = true;
+
+    if (this.data.draggable) {
+      this.sendDevLog('log', 'Draggable overlay enabled');
+    }
+  },
+
+  setupControllerDragEvents: function () {
+    const controllerIds = ['rightHand', 'leftHand'];
+    let missingController = false;
+
+    controllerIds.forEach((controllerId) => {
+      if (this.dragControllerListenerIds.has(controllerId)) {
+        return;
+      }
+
+      const controller = document.getElementById(controllerId);
+
+      if (!controller) {
+        missingController = true;
+        return;
+      }
+
+      controller.addEventListener('triggerdown', () => {
+        this.startScreenDrag(controller);
+      });
+
+      controller.addEventListener('triggerup', () => {
+        this.endScreenDrag(controller);
+      });
+
+      this.dragControllerListenerIds.add(controllerId);
+    });
+
+    if (missingController && this.data.draggable) {
+      requestAnimationFrame(() => {
+        this.setupControllerDragEvents();
+      });
+    }
+  },
+
+  startScreenDrag: function (controller) {
+    if (
+      !this.data.draggable ||
+      !this.screen ||
+      !this.active ||
+      !this.isPointerOverScreen ||
+      (this.pointerController && this.pointerController !== controller)
+    ) {
+      return;
+    }
+
+    controller.object3D.getWorldPosition(this.dragStartControllerPosition);
+    this.dragStartOverlayPosition.set(
+      this.data.position.x,
+      this.data.position.y,
+      this.data.position.z
+    );
+    this.dragCurrentOverlayPosition.copy(this.dragStartOverlayPosition);
+
+    this.draggableController = controller;
+    this.isDraggingScreen = true;
+    this.hasLoggedScreenDragUpdate = false;
+
+    this.sendDevLog('log', 'Screen drag started');
+  },
+
+  stopScreenDrag: function () {
+    this.draggableController = null;
+    this.isDraggingScreen = false;
+  },
+
+  endScreenDrag: function (controller) {
+    if (!this.isDraggingScreen || this.draggableController !== controller) {
+      return;
+    }
+
+    const position = {
+      x: this.dragCurrentOverlayPosition.x,
+      y: this.dragCurrentOverlayPosition.y,
+      z: this.dragCurrentOverlayPosition.z
+    };
+
+    this.stopScreenDrag();
+    this.setOverlayConfig({
+      position,
+      size: {
+        width: this.data.width,
+        height: this.data.height
+      }
+    });
+
+    this.sendDevLog('log', 'Screen drag ended', {
       position
     });
+  },
+
+  tick: function () {
+    if (!this.isDraggingScreen || !this.draggableController || !this.screen) {
+      return;
+    }
+
+    const controllerPosition = new THREE.Vector3();
+    controllerPosition.copy(this.dragStartControllerPosition);
+    this.draggableController.object3D.getWorldPosition(controllerPosition);
+
+    const delta = controllerPosition.sub(this.dragStartControllerPosition);
+    this.dragCurrentOverlayPosition.copy(this.dragStartOverlayPosition).add(delta);
+
+    this.screen.setAttribute(
+      'position',
+      `${this.dragCurrentOverlayPosition.x} ${this.dragCurrentOverlayPosition.y} ${this.dragCurrentOverlayPosition.z}`
+    );
+
+    if (!this.hasLoggedScreenDragUpdate) {
+      this.hasLoggedScreenDragUpdate = true;
+
+      this.sendDevLog('log', 'Screen drag updated', {
+        position: {
+          x: this.dragCurrentOverlayPosition.x,
+          y: this.dragCurrentOverlayPosition.y,
+          z: this.dragCurrentOverlayPosition.z
+        }
+      });
+    }
   },
 
   createHud: function () {
@@ -465,6 +649,10 @@ AFRAME.registerComponent('dev-overlay', {
 
   setOverlayActive: function (active) {
     this.screen.setAttribute('visible', active);
+
+    if (!active) {
+      this.stopScreenDrag();
+    }
 
     const elementsToHide = this.el.sceneEl.querySelectorAll(
       '.dev-overlay-hide-when-active'
