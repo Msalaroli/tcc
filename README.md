@@ -83,7 +83,7 @@ This means the editable scene and overlay position can be updated without fully 
 ## Project structure
 
 ```txt
-tcc_v3/
+tcc/
 ├── package.json
 ├── vite.config.js
 ├── README.md
