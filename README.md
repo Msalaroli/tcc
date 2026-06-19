@@ -10,6 +10,12 @@ It also supports dragging the overlay screen directly inside the AR scene with t
 
 ---
 
+## Architecture
+
+![WebXR Live Coding architecture](./docs/images/architecture.png)
+
+**Overview of the proposed workflow.** The AR shell runs on Meta Quest through WebXR, while the desktop is streamed through WebRTC and integrated into the immersive scene by the `dev-overlay` component.
+
 ## Main idea
 
 During WebXR development, developers often need to constantly switch between the headset and the computer to check code, logs, the browser, or the terminal.
